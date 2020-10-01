@@ -14,9 +14,13 @@ extern crate rustc_driver;
 
 use rustc_codegen_cranelift::prelude::*;
 use cranelift_simplejit::{SimpleJITBackend, SimpleJITBuilder};
+use cranelift_module::FuncOrDataId;
 
 use std::path::{Path, PathBuf};
 use std::os::raw::{c_char, c_int};
+use std::mem;
+use glob::glob;
+
 
 use rustc_interface::{Queries, interface::{Config, Compiler}};
 use rustc_data_structures::fx::FxHashMap;
@@ -25,43 +29,31 @@ use rustc_driver::Compilation;
 
 struct Callbacks;
 
+use crateton_core::Foo;
+
 impl rustc_driver::Callbacks for Callbacks {
   fn config(&mut self, config: &mut Config) {
-    config.opts.cg.panic = Some(PanicStrategy::Abort);
+    //config.opts.cg.panic = Some(PanicStrategy::Abort);
     config.opts.maybe_sysroot =
-      Some(PathBuf::from("/Users/will/Code/rustc_codegen_cranelift/build_sysroot/sysroot"));
+      //Some(PathBuf::from("/Users/will/Code/rustc_codegen_cranelift/build_sysroot/sysroot"));
+      Some(PathBuf::from("/Users/will/.rustup/toolchains/nightly-x86_64-apple-darwin"))
   }
 
   fn after_analysis<'tcx>(&mut self, compiler: &Compiler, queries: &'tcx Queries<'tcx>) -> Compilation {
     queries.global_ctxt().unwrap().peek_mut().enter(|tcx| {
-      let imported_symbols =
-        rustc_codegen_cranelift::driver::jit::load_imported_symbols_for_jit(tcx);
-
       let mut jit_builder = SimpleJITBuilder::with_isa(
           rustc_codegen_cranelift::build_isa(tcx.sess, false),
           cranelift_module::default_libcall_names(),
       );
-      jit_builder.symbols(imported_symbols);
+
+      //let imported_symbols =
+      //  rustc_codegen_cranelift::driver::jit::load_imported_symbols_for_jit(tcx);
+      //jit_builder.symbols(imported_symbols);
+     
+      //jit_builder.symbols(vec![("callback", callback as *const u8)]);
+
       let mut jit_module: Module<SimpleJITBackend> = Module::new(jit_builder);
-
-      let sig = Signature {
-          params: vec![
-              AbiParam::new(jit_module.target_config().pointer_type()),
-              AbiParam::new(jit_module.target_config().pointer_type()),
-          ],
-          returns: vec![AbiParam::new(
-              jit_module.target_config().pointer_type(), /*isize*/
-          )],
-          call_conv: CallConv::triple_default(&rustc_codegen_cranelift::target_triple(tcx.sess)),
-      };
-      let main_func_id = jit_module
-          .declare_function("main", Linkage::Import, &sig)
-          .unwrap();
-
-      if !tcx.sess.opts.output_types.should_codegen() {
-          tcx.sess.fatal("JIT mode doesn't work with `cargo check`.");
-      }
-
+ 
       let (_, cgus) = tcx.collect_and_partition_mono_items(LOCAL_CRATE);
       let mono_items = cgus
           .iter()
@@ -70,7 +62,7 @@ impl rustc_driver::Callbacks for Callbacks {
           .collect::<FxHashMap<_, (_, _)>>()
           .into_iter()
           .collect::<Vec<(_, (_, _))>>();
-
+     
       let mut cx =
         rustc_codegen_cranelift::CodegenCx::new(tcx, jit_module, false);
 
@@ -92,13 +84,18 @@ impl rustc_driver::Callbacks for Callbacks {
 
       tcx.sess.abort_if_errors();
 
-      let finalized_main: *const u8 = jit_module.get_finalized_function(main_func_id);
+      let finalized_func = if let FuncOrDataId::Func(func) = jit_module.get_name("entry").unwrap() {
+        jit_module.get_finalized_function(func)
+      } else {
+        unreachable!()
+      };
 
-      let f: extern "C" fn(c_int, *const *const c_char) -> c_int =
-          unsafe { ::std::mem::transmute(finalized_main) };
+      let entry: extern "C" fn(&mut Foo) -> () = unsafe { mem::transmute(finalized_func) };
 
-      let ret = f(0, std::ptr::null());
-
+      let mut foo = Foo { x: 0, y: 2.0 };
+      entry(&mut foo);
+      println!("{:?}", foo);
+      
       jit_module.finish();
     });
 
@@ -115,46 +112,31 @@ impl rustc_span::source_map::FileLoader for StringLoader {
   }
 }
 
-use std::process::Command;
-
 pub fn setup_scripts() {
   let source =  String::from(r#"
-use crateton_core::foo;
-fn main() {
-  println!("{:?}", foo());
+use crateton_core::Foo;
+
+#[no_mangle]
+pub fn entry(foo: &mut Foo) {
+  println!("YEE HAW {:?}", foo);
+  foo.x += 1;
 }
 "#);
 
-  // let output = Command::new("cargo")
-  //   .args("build --release -Z unstable-options --build-plan".split(" ").collect::<Vec<_>>())
-  //   .output()
-  //   .unwrap()
-  //   .stdout;
-  // let output = String::from_utf8(output).unwrap();
-  // let json: serde_json::Value = serde_json::from_str(&output).unwrap();
-  // let invocations = json["invocations"].as_array().unwrap();
-  // let build_plan = invocations.iter().find(|v| v["package_name"] == "crateton").unwrap();
-  // let build_args = build_plan["args"]
-  //   .as_array().unwrap()
-  //   .iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>();
+  let cmd = cargo_metadata::MetadataCommand::new();
+  let metadata = cmd.exec().unwrap();
+  let package = metadata.root_package().unwrap();
 
-  // let extern_crates = build_args.iter().enumerate()
-  //   .filter(|(i, arg)| **arg == "--extern")
-  //   .map(|(i, _)| &build_args[i..=i+1])
-  //   .flatten();
+  let dep_dir = "target/debug/deps";
+  let externs = package.dependencies.iter().map(|d| {
+    let rlib = glob(&format!("{}/lib{}-*.rlib", dep_dir, d.name)).unwrap().next().unwrap().unwrap();
+    format!("--extern {}={}", d.name, rlib.display())
+  }).collect::<Vec<_>>().join(" ");
 
-  rustc_driver::init_rustc_env_logger();
-  rustc_driver::install_ice_hook();
   rustc_driver::catch_with_exit_code(|| {
-    let mut args = vec![
-      "rustc", "dummy.rs",
-      "--edition=2018",
-      "-Cprefer-dynamic"
-    ];
-    args.extend(extern_crates);
-    
-    println!("{:?}", args);
-
+    let args = format!("rustc dummy.rs --crate-type lib --edition=2018 -L dependency={} {}", dep_dir, externs);
+    let args = args.split(" ").collect::<Vec<_>>();
+   
     rustc_driver::run_compiler(
       &args.into_iter().map(|s| String::from(s)).collect::<Vec<_>>(),
       &mut Callbacks,

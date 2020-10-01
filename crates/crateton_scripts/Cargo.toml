@@ -7,8 +7,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+crateton_core = { path = "../crateton_core" }
 rustc_codegen_cranelift = { path = "../../../rustc_codegen_cranelift" }
 cranelift-simplejit = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
 cranelift-module = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
 cranelift-codegen = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
 cranelift-frontend = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
+cargo_metadata = "0.11"
+glob = "0.3"
