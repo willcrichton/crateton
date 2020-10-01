@@ -4,15 +4,19 @@ version = "0.1.0"
 authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["crates/*"]
+exclude = ["scripts/example_script"]
+
+[profile.release]
+debug = true
+
+[profile.dev.packages."*"]
+opt-level = 3
 
 [dependencies]
 bevy = "0.2.1"
 bevy_rapier3d = "0.2.0"
 rapier3d = "0.1.4"
-
-#[patch.crates-io]
-#rapier3d = { path = "../rapier/build/rapier3d" }
-
-[profile.release]
-debug = true
+crateton_core = { path = "crates/crateton_core" }
+crateton_scripts = { path = "crates/crateton_scripts" }

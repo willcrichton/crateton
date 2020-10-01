@@ -1,22 +1,29 @@
-#![feature(clamp)]
-
 use bevy::prelude::*;
 use bevy_rapier3d::physics::RapierPhysicsPlugin;
 use rapier3d::{dynamics::RigidBodyBuilder, geometry::{ColliderBuilder}};
-use crate::physics::MeshExt;
-
-mod controls;
-mod physics;
+use crateton_core::physics::MeshExt;
+use crateton_core::controls::{FlyCamera, FlyCameraPlugin};
 
 fn main() {
   App::build()
     .add_resource(Msaa::default())
+    .add_resource(WindowDescriptor {
+      width: 1280*2,
+      height: 720*2,
+      ..Default::default()}
+    )
     .add_default_plugins()
     .add_plugin(RapierPhysicsPlugin)
-    .add_plugin(controls::FlyCameraPlugin)
+    .add_plugin(FlyCameraPlugin)
     .add_startup_system(setup_graphics.system())
     .add_startup_system(setup_physics.system())
+    .add_startup_system(crateton_scripts::setup_scripts.system())
     .run();
+}
+
+
+fn setup_scripts(mut commands: Commands) {
+  crateton_scripts::setup_scripts();
 }
 
 fn setup_graphics(mut commands: Commands) {
@@ -33,8 +40,9 @@ fn setup_graphics(mut commands: Commands) {
           )),
           ..Default::default()
       })
-     .with(controls::FlyCamera::default());
+     .with(FlyCamera::default());
 }
+
 
 pub fn setup_physics(
   mut commands: Commands,
@@ -65,14 +73,14 @@ pub fn setup_physics(
   };
   commands.spawn((rigid_body, collider));
   commands.with_bundle(pbr);
-  
+
   /*
    * Monkey
    */
   let monkey_handle = asset_server.load_sync(&mut meshes, "assets/models/Monkey.gltf").unwrap();
   let monkey_body = RigidBodyBuilder::new_static().translation(2., 4., 0.);
   let monkey_collider = meshes.get(&monkey_handle).unwrap().build_collider("Vertex_Position").unwrap().density(1.0);
-    
+
   let material = materials.add(StandardMaterial {
       albedo: Color::rgb(0.5, 0.4, 0.3),
       ..Default::default()
@@ -86,9 +94,9 @@ pub fn setup_physics(
    */
   commands.spawn((
     RigidBodyBuilder::new_dynamic().translation(0., 7., 0.),
-    ColliderBuilder::cuboid(1., 1., 1.).density(1.0),    
+    ColliderBuilder::cuboid(1., 1., 1.).density(1.0),
   ));
-  commands.with_bundle(PbrComponents { 
+  commands.with_bundle(PbrComponents {
     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
     material: materials.add(color.into()),
     ..Default::default()
