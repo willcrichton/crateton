@@ -1172,6 +1172,8 @@ dependencies = [
  "cranelift-simplejit",
  "crateton_core",
  "glob",
+ "libloading 0.6.3",
+ "object",
  "rustc_codegen_cranelift",
 ]
 
@@ -2974,6 +2976,7 @@ dependencies = [
  "indexmap",
  "libloading 0.6.3",
  "object",
+ "snap",
  "target-lexicon",
 ]
 
@@ -3191,6 +3194,12 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
 ]
+
+[[package]]
+name = "snap"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da73c8f77aebc0e40c300b93f0a5f1bece7a248a36eee287d4e095f35c7b7d6e"
 
 [[package]]
 name = "spin"

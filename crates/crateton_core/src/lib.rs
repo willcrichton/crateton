@@ -9,9 +9,6 @@ pub struct Foo {
     pub y: f32
 }
 
-pub fn foo() -> Foo {
-    Foo {
-        x: 1,
-        y: 3.
-    }
+pub fn bar<T: std::fmt::Debug>(t: T) {
+    println!("{:?}", t);
 }

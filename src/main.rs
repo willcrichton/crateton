@@ -4,7 +4,13 @@ use rapier3d::{dynamics::RigidBodyBuilder, geometry::{ColliderBuilder}};
 use crateton_core::physics::MeshExt;
 use crateton_core::controls::{FlyCamera, FlyCameraPlugin};
 
+
+#[derive(Debug)]
+struct Test { x: i32 }
+
 fn main() {
+  println!("{:?}", Test { x: 0 });
+
   App::build()
     .add_resource(Msaa::default())
     .add_resource(WindowDescriptor {
