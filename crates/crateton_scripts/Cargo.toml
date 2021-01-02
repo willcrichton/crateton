@@ -8,12 +8,5 @@ edition = "2018"
 
 [dependencies]
 crateton_core = { path = "../crateton_core" }
-rustc_codegen_cranelift = { path = "../../../rustc_codegen_cranelift" }
-cranelift-simplejit = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
-cranelift-module = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
-cranelift-codegen = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main", features = ["unwind"] }
-cranelift-frontend = { git = "https://github.com/bytecodealliance/wasmtime/", branch = "main" }
-cargo_metadata = "0.11"
-glob = "0.3"
-object = { version = "0.21.1", default-features = false, features = ["std", "read_core", "write", "coff", "elf", "macho", "pe"] }
-libloading = "0.6.0"
+rustpython-vm = { git = "https://github.com/RustPython/RustPython" }
+rustpython-compiler = { git = "https://github.com/RustPython/RustPython" }

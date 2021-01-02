@@ -9,7 +9,7 @@ pub trait MeshExt {
 
 impl MeshExt for Mesh {
     fn build_collider(&self, position_attribute: &'static str) -> Option<ColliderBuilder> {
-        let indices = self.indices.as_ref().unwrap()
+        let indices = match self.indices().as_ref().unwrap()
             .chunks(3)
             .map(|c| Point::new(c[0], c[1], c[2]))
             .collect::<Vec<_>>();

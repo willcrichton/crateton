@@ -37,7 +37,7 @@ fn keyboard_system(
 	keyboard_input: Res<Input<KeyCode>>,
 	mut query: Query<(&mut FlyCamera, &mut Transform)>,
 ) {
-	for (mut camera, mut transform) in &mut query.iter() {
+	for (mut camera, mut transform) in query.iter_mut() {
 
     let movement_axis = |plus, minus| {
       if keyboard_input.pressed(plus) { -1.0 }
@@ -48,19 +48,19 @@ fn keyboard_system(
     let axis_fwd = movement_axis(KeyCode::W, KeyCode::S);
     let axis_side = movement_axis(KeyCode::A, KeyCode::D);
     
-    let fwd_vec = transform.rotation().mul_vec3(Vec3::unit_z()).normalize();
+    let fwd_vec = transform.rotation.mul_vec3(Vec3::unit_z()).normalize();
     let side_vec = Quat::from_rotation_y(90f32.to_radians()).mul_vec3(fwd_vec).safe_normalize();
-    let accel = (fwd_vec * axis_fwd + side_vec * axis_side) * camera.speed * time.delta_seconds;
+    let accel = (fwd_vec * axis_fwd + side_vec * axis_side) * camera.speed * time.delta_seconds();
     camera.velocity += accel;
 
-    let friction = camera.velocity.safe_normalize() * -1.0 * time.delta_seconds;
-    camera.velocity = if (camera.velocity + friction).sign() != camera.velocity.sign() { 
+    let friction = camera.velocity.safe_normalize() * -1.0 * time.delta_seconds();
+    camera.velocity = if (camera.velocity + friction).signum() != camera.velocity.signum() { 
       Vec3::zero() 
     } else {
       camera.velocity + friction
     };
     
-    transform.translate(camera.velocity);
+    transform.translation += camera.velocity;
   }
 }
 
@@ -80,14 +80,13 @@ fn mouse_system(
 		delta += event.delta;
   }
     
-  for (mut camera, mut transform) in &mut query.iter() {
-    camera.yaw = camera.yaw - delta.x() * camera.sensitivity * time.delta_seconds;
-    camera.pitch = (camera.pitch + delta.y() * camera.sensitivity * time.delta_seconds).clamp(-89.9, 89.9);
+  for (mut camera, mut transform) in query.iter_mut() {
+    camera.yaw = camera.yaw - delta.x * camera.sensitivity * time.delta_seconds();
+    camera.pitch = (camera.pitch + delta.y * camera.sensitivity * time.delta_seconds()).clamp(-89.9, 89.9);
 
-    transform.set_rotation(
+    transform.rotation = 
       Quat::from_axis_angle(Vec3::unit_y(), camera.yaw.to_radians())
-        * Quat::from_axis_angle(-Vec3::unit_x(), camera.pitch.to_radians())
-    )
+        * Quat::from_axis_angle(-Vec3::unit_x(), camera.pitch.to_radians());
   }
 }
 
@@ -98,6 +97,6 @@ impl Plugin for FlyCameraPlugin {
 		app
 		  .init_resource::<State>()
 			.add_system(keyboard_system.system())
-			.add_system(mouse_system.system());
+			.add_system(mouse_system.system());   
 	}
 }
