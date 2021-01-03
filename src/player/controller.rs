@@ -75,11 +75,9 @@ pub fn input_to_events(
   look_direction_query: Query<&LookDirection>,
 ) {
   let xz = Vec3::new(1.0, 0.0, 1.0);
-  println!("system?");
   for (mass, look_entity, mut controller) in controller_query.iter_mut() {
     controller.sim_to_render += time.delta_seconds();
 
-    println!("entity?");
     if keyboard_input.pressed(controller.input_map.key_forward) {
       controller.input_state.forward = true;
     }
@@ -97,6 +95,9 @@ pub fn input_to_events(
     }
     if keyboard_input.just_pressed(controller.input_map.key_jump) {
       controller.input_state.jump = true;
+    }
+    if keyboard_input.just_pressed(controller.input_map.key_toggle_fly) {
+      controller.fly = !controller.fly;
     }
 
     if controller.sim_to_render < controller.dt {
