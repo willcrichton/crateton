@@ -1,9 +1,11 @@
+use bevy::prelude::*;
+
 // use rustpython_compiler as compiler;
 // use rustpython_vm as vm;
 
 // use vm::pyobject::PyResult;
 
-pub fn setup_scripts() {
+fn setup_scripts() {
   // vm::Interpreter::default().enter::<_, PyResult<()>>(|vm| {
   //   let scope = vm.new_scope_with_builtins();
 
@@ -19,4 +21,12 @@ pub fn setup_scripts() {
     
   //   Ok(())
   // }).unwrap();
+}
+
+pub struct ScriptsPlugin;
+
+impl Plugin for ScriptsPlugin {
+  fn build(&self, app: &mut AppBuilder) {
+    app.add_startup_system(setup_scripts.system());
+  }
 }

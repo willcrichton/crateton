@@ -1255,6 +1255,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_rapier3d",
+ "nalgebra",
+ "ncollide3d",
  "rapier3d",
 ]
 
@@ -1262,6 +1264,7 @@ dependencies = [
 name = "crateton_scripts"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "crateton_core",
  "rustpython-compiler",
  "rustpython-vm",
