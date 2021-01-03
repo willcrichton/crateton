@@ -1,5 +1,8 @@
 use bevy::{asset::LoadState, prelude::*, scene::InstanceId};
-use rapier3d::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder};
+use bevy_rapier3d::{
+  na::Isometry3,
+  rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
+};
 
 use crate::physics::MeshWrapper;
 
@@ -79,13 +82,10 @@ fn init_assets(
         };
 
         let mesh = meshes.get(mesh_handle).unwrap();
-        let mesh_wrapper = MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal");
+        let mesh_wrapper = MeshWrapper::new(mesh, "Vertex_Normal", "Vertex_Position");
+        let position = Isometry3::translation(0., 3., 0.);
         mesh_wrapper
-          .build_collider(
-            commands,
-            entity,
-            debug_cube.0.clone(),
-          )
+          .build_collider(commands, entity, position, debug_cube.0.clone())
           .unwrap();
       });
   }
@@ -94,10 +94,11 @@ fn init_assets(
    * Ground
    */
   let ground_size = 200.1;
-  let ground_height = 0.1;
+  let ground_height = 1.0;
+  let extents = Vec3::new(0.5*ground_size, 0.5*ground_height, 0.5*ground_size);
 
-  let rigid_body = RigidBodyBuilder::new_static().translation(0.0, -ground_height, 0.0);
-  let collider = ColliderBuilder::cuboid(ground_size, ground_height, ground_size);
+  let rigid_body = RigidBodyBuilder::new_static().translation(0.0, -0.5 * ground_height, 0.0);
+  let collider = ColliderBuilder::cuboid(extents.x, extents.y, extents.z);
   let color = Color::rgb(
     0xF3 as f32 / 255.0,
     0xD9 as f32 / 255.0,
@@ -105,7 +106,7 @@ fn init_assets(
   );
   let pbr = PbrBundle {
     mesh: debug_cube.0.clone(),
-    transform: Transform::from_scale(Vec3::new(ground_size, ground_height, ground_size)),
+    transform: Transform::from_scale(extents),
     material: materials.add(color.into()),
     ..Default::default()
   };

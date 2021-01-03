@@ -5,7 +5,7 @@ authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
 edition = "2018"
 
 [workspace]
-members = ["crates/*"]
+# members = ["crates/*"]
 exclude = ["scripts/example_script"]
 
 [profile.release]
@@ -17,12 +17,10 @@ opt-level = 3
 [dependencies]
 bevy = "0.4.0"
 bevy_rapier3d = "0.7.0"
-rapier3d = "0.4.2"
 ncollide3d = "0.26"
-nalgebra = "0.23"
 
-crateton_core = { path = "crates/crateton_core" }
-crateton_scripts = { path = "crates/crateton_scripts" }
+# crateton_core = { path = "crates/crateton_core" }
+# crateton_scripts = { path = "crates/crateton_scripts" }
 
 [patch.crates-io]
 bevy = { path = "../bevy" }

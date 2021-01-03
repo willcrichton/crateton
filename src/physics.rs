@@ -2,14 +2,15 @@ use bevy::{
   prelude::*,
   render::mesh::{Indices, VertexAttributeValues},
 };
-use nalgebra::Matrix3x1;
+use bevy_rapier3d::{
+  na::{Isometry3, Matrix3x1},
+  rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder, math::Point},
+};
 use ncollide3d::{
   bounding_volume::{HasBoundingVolume, AABB},
   procedural::{IndexBuffer, TriMesh as NTrimesh},
   shape::TriMesh as NSTriMesh,
 };
-use rapier3d::math::Point;
-use rapier3d::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder};
 use std::borrow::Cow;
 
 const DEBUG: bool = false;
@@ -37,6 +38,7 @@ impl<'a> MeshWrapper<'a> {
     &self,
     commands: &mut Commands,
     entity: Entity,
+    position: Isometry3<f32>,
     debug_cube: Handle<Mesh>,
   ) -> Option<()> {
     let trimesh = self.to_ncollide_trimesh();
@@ -64,7 +66,7 @@ impl<'a> MeshWrapper<'a> {
       })
       .collect::<Vec<_>>();
 
-    let rigid_body = RigidBodyBuilder::new_dynamic().translation(0., 3., 0.);
+    let rigid_body = RigidBodyBuilder::new_dynamic().position(position);
 
     commands.set_current_entity(entity);
     commands.with(rigid_body);
@@ -81,7 +83,11 @@ impl<'a> MeshWrapper<'a> {
   }
 
   fn get_attribute(&self, name: impl Into<Cow<'static, str>>) -> Vec<Point<f32>> {
-    let attr = self.mesh.attribute(name).unwrap();
+    let name = name.into();
+    let attr = self
+      .mesh
+      .attribute(name.clone())
+      .expect(&format!("invalid attribute name {}", name));
     match attr {
       VertexAttributeValues::Float3(v) => v
         .iter()
@@ -115,5 +121,13 @@ impl<'a> MeshWrapper<'a> {
       None,
       Some(IndexBuffer::Unified(indices.clone())),
     )
+  }
+}
+
+pub struct PhysicsPlugin;
+impl Plugin for PhysicsPlugin {
+  fn build(&self, _app: &mut AppBuilder) {
+    //app.add_startup_system(init_physics.system());
+    //app.add_system(player_system.system());
   }
 }
