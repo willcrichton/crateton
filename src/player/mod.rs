@@ -69,18 +69,13 @@ fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>) {
     .current_entity()
     .unwrap();
 
+  let perspective = controller::Perspective::ThirdPerson;
   let camera = commands
     .spawn(Camera3dBundle {
-      transform: Transform::from_matrix(Mat4::face_toward(
-        Vec3::new(0., 4., 8.),
-        Vec3::zero(),
-        // Vec3::zero(),
-        // -Vec3::unit_z(),
-        Vec3::unit_y(),
-      )),
+      transform: perspective.to_transform(),
       ..Default::default()
     })
-    .with_bundle((look::LookDirection::default(), controller::CameraTag))
+    .with_bundle((look::LookDirection::default(), controller::CameraTag, perspective))
     .current_entity()
     .unwrap();
 

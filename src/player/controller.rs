@@ -1,8 +1,5 @@
 use super::{
-  events::{
-    ControllerEvents, ForceEvent, ImpulseEvent, PitchEvent,
-    TranslationEvent, YawEvent,
-  },
+  events::{ControllerEvents, ForceEvent, ImpulseEvent, PitchEvent, TranslationEvent, YawEvent},
   input_map::InputMap,
   look::{LookDirection, LookEntity},
 };
@@ -12,8 +9,6 @@ pub struct BodyTag;
 pub struct YawTag;
 pub struct HeadTag;
 pub struct CameraTag;
-
-
 
 #[derive(Debug, Default)]
 pub struct InputState {
@@ -65,6 +60,21 @@ impl Mass {
   }
 }
 
+pub enum Perspective {
+  FirstPerson, ThirdPerson
+}
+
+impl Perspective {
+  pub fn to_transform(&self) -> Transform {
+    let (eye, center) = match self {
+      Perspective::FirstPerson => (Vec3::zero(), -Vec3::unit_z()),
+      Perspective::ThirdPerson => (Vec3::new(0., 4., 8.), Vec3::zero())
+    };
+
+    Transform::from_matrix(Mat4::face_toward(eye, center, Vec3::unit_y()))
+  }
+}
+
 pub fn input_to_events(
   time: Res<Time>,
   keyboard_input: Res<Input<KeyCode>>,
@@ -73,9 +83,11 @@ pub fn input_to_events(
   mut force_events: ResMut<Events<ForceEvent>>,
   mut controller_query: Query<(&Mass, &LookEntity, &mut CharacterController)>,
   look_direction_query: Query<&LookDirection>,
+  mut transform_query: Query<(&mut Transform, &mut Perspective)>,
 ) {
   let xz = Vec3::new(1.0, 0.0, 1.0);
   for (mass, look_entity, mut controller) in controller_query.iter_mut() {
+    let camera_entity = look_entity.0;
     controller.sim_to_render += time.delta_seconds();
 
     if keyboard_input.pressed(controller.input_map.key_forward) {
@@ -99,6 +111,14 @@ pub fn input_to_events(
     if keyboard_input.just_pressed(controller.input_map.key_toggle_fly) {
       controller.fly = !controller.fly;
     }
+    if keyboard_input.just_pressed(controller.input_map.key_toggle_camera_view) {
+      let (mut transform, mut perspective) = transform_query.get_mut(camera_entity).unwrap();
+      *perspective = match *perspective {
+        Perspective::FirstPerson => Perspective::ThirdPerson,
+        Perspective::ThirdPerson => Perspective::FirstPerson
+      };
+      *transform = perspective.to_transform();
+    }
 
     if controller.sim_to_render < controller.dt {
       continue;
@@ -108,7 +128,7 @@ pub fn input_to_events(
     controller.sim_to_render %= controller.dt;
 
     let look = look_direction_query
-      .get_component::<LookDirection>(look_entity.0)
+      .get_component::<LookDirection>(camera_entity)
       .expect("Failed to get LookDirection from Entity");
 
     // Calculate forward / right / up vectors
@@ -151,13 +171,15 @@ pub fn input_to_events(
     };
 
     // Handle jumping
-    let was_jumping = controller.jumping;
-    desired_velocity.y = if controller.input_state.jump {
-      controller.jumping = true;
-      controller.jump_speed
-    } else {
-      0.0
-    };
+    let was_jumping = controller.jumping && !controller.fly;
+    if !controller.fly {
+      desired_velocity.y = if controller.input_state.jump {
+        controller.jumping = true;
+        controller.jump_speed
+      } else {
+        0.0
+      };
+    }
 
     // Calculate impulse - the desired momentum change for the time period
     let delta_velocity = desired_velocity - controller.velocity * xz;

@@ -2,7 +2,7 @@ use super::{controller::*, events::*};
 
 use bevy::prelude::*;
 use bevy_rapier3d::{
-  na::Translation3, 
+  na::Vector3,
   physics::RigidBodyHandleComponent,
   rapier::{
     dynamics::{BodyStatus, RigidBodySet},
@@ -65,25 +65,23 @@ pub fn controller_to_fly(
   translations: Res<Events<TranslationEvent>>,
   mut reader: ResMut<ControllerEvents>,
   mut bodies: ResMut<RigidBodySet>,
-  mut query: Query<
-    (
-      &RigidBodyHandleComponent,
-      &mut Transform,
-      &CharacterController,
-    ),
-    With<BodyTag>,
-  >,
+  mut query: Query<(&RigidBodyHandleComponent, &CharacterController), With<BodyTag>>,
 ) {
-  for (body_handle, mut transform, controller) in query.iter_mut() {
+  for (body_handle, controller) in query.iter_mut() {
     if controller.fly {
       let body = bodies
         .get_mut(body_handle.handle())
         .expect("Failed to get character body");
       body.body_status = BodyStatus::Static;
       body.sleep();
-      for translation in reader.translations.iter(&translations) {
-        transform.translation += **translation;
-      }
+
+      let mut position = body.position().clone();
+      let delta = reader
+        .translations
+        .iter(&translations)
+        .fold(Vec3::zero(), |a, b| a + **b);
+      position.translation.vector += Vector3::new(delta.x, delta.y, delta.z);
+      body.set_position(position, false);
     }
   }
 }
