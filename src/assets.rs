@@ -95,7 +95,7 @@ fn init_assets(
    */
   let ground_size = 200.1;
   let ground_height = 1.0;
-  let extents = Vec3::new(0.5*ground_size, 0.5*ground_height, 0.5*ground_size);
+  let extents = Vec3::new(0.5 * ground_size, 0.5 * ground_height, 0.5 * ground_size);
 
   let rigid_body = RigidBodyBuilder::new_static().translation(0.0, -0.5 * ground_height, 0.0);
   let collider = ColliderBuilder::cuboid(extents.x, extents.y, extents.z);

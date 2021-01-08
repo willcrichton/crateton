@@ -61,14 +61,15 @@ impl Mass {
 }
 
 pub enum Perspective {
-  FirstPerson, ThirdPerson
+  FirstPerson,
+  ThirdPerson,
 }
 
 impl Perspective {
   pub fn to_transform(&self) -> Transform {
     let (eye, center) = match self {
       Perspective::FirstPerson => (Vec3::zero(), -Vec3::unit_z()),
-      Perspective::ThirdPerson => (Vec3::new(0., 4., 8.), Vec3::zero())
+      Perspective::ThirdPerson => (Vec3::new(0., 4., 8.), Vec3::zero()),
     };
 
     Transform::from_matrix(Mat4::face_toward(eye, center, Vec3::unit_y()))
@@ -115,7 +116,7 @@ pub fn input_to_events(
       let (mut transform, mut perspective) = transform_query.get_mut(camera_entity).unwrap();
       *perspective = match *perspective {
         Perspective::FirstPerson => Perspective::ThirdPerson,
-        Perspective::ThirdPerson => Perspective::FirstPerson
+        Perspective::ThirdPerson => Perspective::FirstPerson,
       };
       *transform = perspective.to_transform();
     }

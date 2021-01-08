@@ -8,8 +8,10 @@ pub struct InputMap {
   pub key_jump: KeyCode,
   pub key_run: KeyCode,
   pub key_crouch: KeyCode,
+
   pub key_toggle_camera_view: KeyCode,
   pub key_toggle_fly: KeyCode,
+
   pub invert_y: bool,
 }
 
