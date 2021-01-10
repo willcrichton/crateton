@@ -1,16 +1,21 @@
-use super::{look, controller};
+use super::{controller, look};
 
 use bevy::prelude::*;
 use bevy_rapier3d::{
   na::Vector3,
-  rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
+  rapier::{
+    dynamics::RigidBodyBuilder,
+    geometry::{ColliderBuilder, InteractionGroups},
+  },
 };
 
 pub struct Player {
   pub body: Entity,
   pub head: Entity,
-  pub camera: Entity
+  pub camera: Entity,
 }
+
+pub const RAPIER_PLAYER_GROUP: u16 = 1;
 
 pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>) {
   let height = 3.0;
@@ -23,7 +28,9 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
         .translation(3., height * 2., 0.)
         .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false)),
       //ColliderBuilder::cylinder(0.5*height, 1.0).density(200.),
-      ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0).density(1.0),
+      ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
+        .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
+        .density(1.0),
       Transform::identity(),
       GlobalTransform::identity(),
     ))
@@ -87,4 +94,35 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .push_children(head, &[camera]);
 
   commands.insert_resource(Player { body, head, camera });
+}
+
+pub fn init_hud(
+  commands: &mut Commands,
+  asset_server: Res<AssetServer>,
+  mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+  commands
+    .spawn(CameraUiBundle::default())
+    .spawn(NodeBundle {
+      style: Style {
+        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+        position_type: PositionType::Absolute,
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..Default::default()
+      },
+      material: materials.add(Color::NONE.into()),
+      ..Default::default()
+    })
+    .with_children(|parent| {
+      // bevy logo (image)
+      parent.spawn(ImageBundle {
+        style: Style {
+          size: Size::new(Val::Px(30.0), Val::Auto),
+          ..Default::default()
+        },
+        material: materials.add(asset_server.load("images/crosshairs.png").into()),
+        ..Default::default()
+      });
+    });
 }

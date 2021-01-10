@@ -21,7 +21,6 @@ fn main() {
     //.add_plugin(bevy_rapier3d::render::RapierRenderPlugin)
     .add_plugin(assets::AssetsPlugin)
     .add_plugin(physics::PhysicsPlugin)
-    //.add_plugin(crateton_scripts::ScriptsPlugin)
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
     .add_startup_system(setup_graphics.system())

@@ -7,6 +7,7 @@ pub mod input_map;
 pub mod look;
 pub mod physics;
 pub mod spawn;
+pub mod raycast;
 
 const PROCESS_INPUT_EVENTS: &str = "process_input_events";
 const APPLY_INPUT: &str = "apply_input";
@@ -17,6 +18,7 @@ impl Plugin for PlayerControllerPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
       .add_startup_system(spawn::spawn_character.system())
+      .add_startup_system(spawn::init_hud.system())
       //
       // Detect keyboard + mouse events
       .add_event::<events::PitchEvent>()
