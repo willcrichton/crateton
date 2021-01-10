@@ -72,7 +72,7 @@ impl<'a> MeshWrapper<'a> {
     commands.with(rigid_body);
 
     for (pbr, collider) in colliders {
-      commands.spawn((Parent(entity), collider));
+      commands.spawn((Parent(entity), tag_collider_with(collider, entity)));
 
       if DEBUG {
         commands.with_bundle(pbr);
@@ -130,4 +130,13 @@ impl Plugin for PhysicsPlugin {
     //app.add_startup_system(init_physics.system());
     //app.add_system(player_system.system());
   }
+}
+
+
+pub fn tag_collider_with(collider: ColliderBuilder, entity: Entity) -> ColliderBuilder {
+  collider.user_data(entity.to_bits() as u128)
+}
+pub fn tag_collider(commands: &mut Commands, collider: ColliderBuilder) -> ColliderBuilder {
+  let entity = commands.current_entity().unwrap();
+  tag_collider_with(collider, entity)
 }

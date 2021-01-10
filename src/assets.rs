@@ -4,7 +4,7 @@ use bevy_rapier3d::{
   rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
 };
 
-use crate::physics::MeshWrapper;
+use crate::physics::{tag_collider, MeshWrapper};
 
 #[derive(Clone, Debug)]
 enum AssetState {
@@ -110,16 +110,17 @@ fn init_assets(
     material: materials.add(color.into()),
     ..Default::default()
   };
-  commands.spawn((rigid_body, collider));
+  commands.spawn((rigid_body,));
+  let collider = tag_collider(commands, collider);
+  commands.with(collider);
   commands.with_bundle(pbr);
 
   /*
    * Box
    */
-  commands.spawn((
-    RigidBodyBuilder::new_dynamic().translation(0., 7., 0.),
-    ColliderBuilder::cuboid(1., 1., 1.).density(1.0),
-  ));
+  commands.spawn((RigidBodyBuilder::new_dynamic().translation(0., 7., 0.),));
+  let collider = tag_collider(commands, ColliderBuilder::cuboid(1., 1., 1.).density(1.0));
+  commands.with(collider);
   commands.with_bundle(PbrBundle {
     mesh: debug_cube.0.clone(),
     material: materials.add(color.into()),

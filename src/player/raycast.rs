@@ -2,10 +2,10 @@ use super::{
   look::LookDirection,
   spawn::{Player, RAPIER_PLAYER_GROUP},
 };
+use crate::math::*;
 use bevy::{ecs::SystemParam, prelude::*};
 use bevy_rapier3d::rapier::{
   geometry::{Collider, ColliderHandle, ColliderSet, InteractionGroups, Ray, RayIntersection},
-  na::{Point3, Vector3},
   pipeline::QueryPipeline,
 };
 
@@ -27,6 +27,7 @@ pub struct HitInfo<'a> {
   pub collider_handle: ColliderHandle,
   pub collider: &'a Collider,
   pub intersection: RayIntersection,
+  pub entity: Entity,
 }
 
 impl Player {
@@ -41,10 +42,7 @@ impl Player {
     let head_pos = global_transform_query.get(self.head).unwrap();
     let origin = head_pos.translation;
     let direction = look.forward;
-    Ray::new(
-      Point3::new(origin.x, origin.y, origin.z),
-      Vector3::new(direction.x, direction.y, direction.z),
-    )
+    Ray::new(origin.to_point3(), direction.to_vector3())
   }
 
   pub fn cast_from_eye<'a>(&self, deps: &'a CastFromEyeDeps<'a>) -> Option<HitInfo<'a>> {
@@ -62,11 +60,15 @@ impl Player {
         f32::MAX,
         InteractionGroups::all().with_mask(u16::MAX ^ RAPIER_PLAYER_GROUP),
       )
-      .map(|(collider_handle, collider, intersection)| HitInfo {
-        ray,
-        collider_handle,
-        collider,
-        intersection,
+      .map(|(collider_handle, collider, intersection)| {
+        let entity = Entity::from_bits(collider.user_data as u64);
+        HitInfo {
+          ray,
+          collider_handle,
+          collider,
+          intersection,
+          entity,
+        }
       })
   }
 }

@@ -1,4 +1,5 @@
 use super::{controller, look};
+use crate::physics::tag_collider;
 
 use bevy::prelude::*;
 use bevy_rapier3d::{
@@ -28,14 +29,18 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
         .translation(3., height * 2., 0.)
         .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false)),
       //ColliderBuilder::cylinder(0.5*height, 1.0).density(200.),
-      ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
-        .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
-        .density(1.0),
       Transform::identity(),
       GlobalTransform::identity(),
     ))
     .current_entity()
     .unwrap();
+  let collider = tag_collider(
+    commands,
+    ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
+      .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
+      .density(1.0),
+  );
+  commands.with(collider);
 
   let cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
   let body_model = commands

@@ -5,6 +5,7 @@ mod assets;
 mod physics;
 mod player;
 mod tools;
+mod math;
 
 fn main() {
   App::build()
