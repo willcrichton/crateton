@@ -42,7 +42,7 @@ impl Player {
     let head_pos = global_transform_query.get(self.head).unwrap();
     let origin = head_pos.translation;
     let direction = look.forward;
-    Ray::new(origin.to_point3(), direction.to_vector3())
+    Ray::new(origin.to_na_point3(), direction.to_na_vector3())
   }
 
   pub fn cast_from_eye<'a>(&self, deps: &'a CastFromEyeDeps<'a>) -> Option<HitInfo<'a>> {
