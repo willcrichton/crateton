@@ -4,19 +4,22 @@ use bevy_rapier3d::{
   rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
 };
 
-use crate::physics::{tag_collider, MeshWrapper};
+use crate::physics::MeshWrapper;
+use crate::prelude::*;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
-enum AssetState {
+pub enum AssetState {
   Start,
   Loading,
   Spawning,
   Finished,
 }
 #[derive(Default)]
-struct AssetHandles {
-  handles: Vec<Handle<Scene>>,
-  instances: Vec<InstanceId>,
+pub struct AssetHandles {
+  pub scene_handles: Vec<Handle<Scene>>,
+  pub scene_instances: Vec<InstanceId>,
+  pub shader_handles: HashMap<String, Handle<Shader>>,
 }
 
 fn load_assets(
@@ -28,15 +31,20 @@ fn load_assets(
 ) {
   match state.current() {
     AssetState::Start => {
-      asset_handles.handles = vec![asset_server.load("models/Monkey.gltf#Scene0")];
+      asset_server.watch_for_changes().unwrap();
+      asset_handles.scene_handles = vec![asset_server.load("models/Monkey.gltf#Scene0")];
+      asset_handles.shader_handles = vec!["shaders/silhouette.vert", "shaders/silhouette.frag"]
+        .into_iter()
+        .map(|path| (path.to_string(), asset_server.load(path)))
+        .collect();
       state.set_next(AssetState::Loading).unwrap();
     }
     AssetState::Loading => {
-      if let LoadState::Loaded =
-        asset_server.get_group_load_state(asset_handles.handles.iter().map(|h| h.id))
-      {
-        asset_handles.instances = asset_handles
-          .handles
+      let scene_ids = asset_handles.scene_handles.iter().map(|h| h.id);
+      let shader_ids = asset_handles.shader_handles.values().map(|h| h.id);
+      if let LoadState::Loaded = asset_server.get_group_load_state(scene_ids.chain(shader_ids)) {
+        asset_handles.scene_instances = asset_handles
+          .scene_handles
           .iter()
           .map(|handle| {
             debug_assert!(scenes.get(handle).is_some(), "scene isn't properly loaded");
@@ -48,7 +56,7 @@ fn load_assets(
     }
     AssetState::Spawning => {
       if asset_handles
-        .instances
+        .scene_instances
         .iter()
         .all(|inst| scene_spawner.instance_is_ready(*inst))
       {
@@ -70,7 +78,7 @@ fn init_assets(
 ) {
   debug_cube.0 = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
 
-  for instance in &asset_handles.instances {
+  for instance in &asset_handles.scene_instances {
     let _errs = scene_spawner
       .iter_instance_entities(*instance)
       .unwrap()
@@ -110,22 +118,30 @@ fn init_assets(
     material: materials.add(color.into()),
     ..Default::default()
   };
-  commands.spawn((rigid_body,));
-  let collider = tag_collider(commands, collider);
-  commands.with(collider);
-  commands.with_bundle(pbr);
+  commands
+    .spawn(())
+    .with_rigid_body(rigid_body)
+    .with(collider)
+    .with_bundle(pbr);
 
   /*
    * Box
    */
-  commands.spawn((RigidBodyBuilder::new_dynamic().translation(0., 7., 0.),));
-  let collider = tag_collider(commands, ColliderBuilder::cuboid(1., 1., 1.).density(1.0));
-  commands.with(collider);
-  commands.with_bundle(PbrBundle {
-    mesh: debug_cube.0.clone(),
-    material: materials.add(color.into()),
-    ..Default::default()
-  });
+  let rigid_body = RigidBodyBuilder::new_dynamic().translation(0., 7., 0.);
+  let collider = ColliderBuilder::cuboid(1., 1., 1.).density(1.0);
+  commands
+    .spawn(())
+    .with_rigid_body(rigid_body)
+    .with(collider)
+    .with_bundle(PbrBundle {
+      mesh: debug_cube.0.clone(),
+      material: materials.add(color.into()),
+      // render_pipelines: RenderPipelines::from_pipelines(vec![
+      //   RenderPipeline::new(FORWARD_PIPELINE_HANDLE.typed()),
+      //   RenderPipeline::new(pipeline_handle),
+      // ]),
+      ..Default::default()
+    });
 }
 
 #[derive(Default)]

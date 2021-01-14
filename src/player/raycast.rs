@@ -2,30 +2,31 @@ use super::{
   look::LookDirection,
   spawn::{Player, RAPIER_PLAYER_GROUP},
 };
-use crate::math::*;
+use crate::prelude::*;
 use bevy::{ecs::SystemParam, prelude::*};
 use bevy_rapier3d::rapier::{
-  geometry::{Collider, ColliderHandle, ColliderSet, InteractionGroups, Ray, RayIntersection},
+  dynamics::RigidBodySet,
+  geometry::{ColliderHandle, ColliderSet, InteractionGroups, Ray, RayIntersection},
   pipeline::QueryPipeline,
 };
 
 #[derive(SystemParam)]
 pub struct LookDirDeps<'a> {
-  look_direction_query: Query<'a, &'a LookDirection>,
-  global_transform_query: Query<'a, &'a GlobalTransform>,
+  pub look_direction_query: Query<'a, &'a LookDirection>,
+  pub global_transform_query: Query<'a, &'a GlobalTransform>,
 }
 
 #[derive(SystemParam)]
 pub struct CastFromEyeDeps<'a> {
-  rapier_pipeline: Res<'a, QueryPipeline>,
-  colliders: Res<'a, ColliderSet>,
-  look_dir_deps: LookDirDeps<'a>,
+  pub rapier_pipeline: Res<'a, QueryPipeline>,
+  pub colliders: Res<'a, ColliderSet>,
+  pub look_dir_deps: LookDirDeps<'a>,
+  pub bodies: ResMut<'a, RigidBodySet>,
 }
 
-pub struct HitInfo<'a> {
+pub struct HitInfo {
   pub ray: Ray,
   pub collider_handle: ColliderHandle,
-  pub collider: &'a Collider,
   pub intersection: RayIntersection,
   pub entity: Entity,
 }
@@ -45,11 +46,12 @@ impl Player {
     Ray::new(origin.to_na_point3(), direction.to_na_vector3())
   }
 
-  pub fn cast_from_eye<'a>(&self, deps: &'a CastFromEyeDeps<'a>) -> Option<HitInfo<'a>> {
+  pub fn cast_from_eye<'a>(&self, deps: &CastFromEyeDeps<'a>) -> Option<HitInfo> {
     let CastFromEyeDeps {
       rapier_pipeline,
       colliders,
       look_dir_deps,
+      bodies,
     } = deps;
 
     let ray = self.look_dir(look_dir_deps);
@@ -61,11 +63,10 @@ impl Player {
         InteractionGroups::all().with_mask(u16::MAX ^ RAPIER_PLAYER_GROUP),
       )
       .map(|(collider_handle, collider, intersection)| {
-        let entity = Entity::from_bits(collider.user_data as u64);
+        let entity = bodies.get(collider.parent()).unwrap().entity();
         HitInfo {
           ray,
           collider_handle,
-          collider,
           intersection,
           entity,
         }

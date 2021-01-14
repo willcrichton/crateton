@@ -4,7 +4,11 @@ use bevy::{
 };
 use bevy_rapier3d::{
   na::{Isometry3, Matrix3x1},
-  rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder, math::Point},
+  rapier::{
+    dynamics::{RigidBody, RigidBodyBuilder},
+    geometry::ColliderBuilder,
+    math::Point,
+  },
 };
 use ncollide3d::{
   bounding_volume::{HasBoundingVolume, AABB},
@@ -69,10 +73,10 @@ impl<'a> MeshWrapper<'a> {
     let rigid_body = RigidBodyBuilder::new_dynamic().position(position);
 
     commands.set_current_entity(entity);
-    commands.with(rigid_body);
+    commands.with_rigid_body(rigid_body);
 
     for (pbr, collider) in colliders {
-      commands.spawn((Parent(entity), tag_collider_with(collider, entity)));
+      commands.spawn((Parent(entity), collider));
 
       if DEBUG {
         commands.with_bundle(pbr);
@@ -132,11 +136,33 @@ impl Plugin for PhysicsPlugin {
   }
 }
 
-
-pub fn tag_collider_with(collider: ColliderBuilder, entity: Entity) -> ColliderBuilder {
-  collider.user_data(entity.to_bits() as u128)
+pub trait RigidBodyExt {
+  fn entity(&self) -> Entity;
 }
-pub fn tag_collider(commands: &mut Commands, collider: ColliderBuilder) -> ColliderBuilder {
-  let entity = commands.current_entity().unwrap();
-  tag_collider_with(collider, entity)
+
+impl RigidBodyExt for RigidBody {
+  fn entity(&self) -> Entity {
+    Entity::from_bits(self.user_data as u64)
+  }
+}
+
+pub trait RigidBodyBuilderExt {
+  fn entity(self, entity: Entity) -> Self;
+}
+
+impl RigidBodyBuilderExt for RigidBodyBuilder {
+  fn entity(self, entity: Entity) -> Self {
+    self.user_data(entity.to_bits() as u128)
+  }
+}
+
+pub trait CommandsExt {
+  fn with_rigid_body(&mut self, builder: RigidBodyBuilder) -> &mut Self;
+}
+
+impl CommandsExt for Commands {
+  fn with_rigid_body(&mut self, builder: RigidBodyBuilder) -> &mut Self {
+    let entity = self.current_entity().unwrap();
+    self.with(builder.entity(entity))
+  }
 }

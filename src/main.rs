@@ -6,6 +6,8 @@ mod physics;
 mod player;
 mod tools;
 mod math;
+mod shaders;
+mod prelude;
 
 fn main() {
   App::build()
@@ -24,6 +26,7 @@ fn main() {
     .add_plugin(physics::PhysicsPlugin)
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
+    .add_plugin(shaders::ShadersPlugin)
     .add_startup_system(setup_graphics.system())
     .run();
 }
