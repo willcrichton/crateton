@@ -16,6 +16,7 @@ jobs:
       - run: git clone https://github.com/bevyengine/bevy ../bevy && pushd ../bevy && git checkout 6a0116e994cb7d9d105cb0897f542701d955db88 && popd && git clone https://github.com/willcrichton/winit/ ../winit
       - run: cargo install cargo-make
       - run: cargo make build-web --profile release
+      - run: rm wasm/assets && cp -r assets wasm
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
