@@ -14,8 +14,7 @@ use bevy::{
   prelude::*,
   render::{
     pipeline::{
-      CullMode, PipelineDescriptor, PipelineSpecialization, RasterizationStateDescriptor,
-      RenderPipeline,
+      CullMode, PipelineDescriptor, RasterizationStateDescriptor,
     },
     shader::ShaderStages,
   },
@@ -77,7 +76,10 @@ fn tool_system(
 
       if reset {
         let body = cast_from_eye_deps.bodies.get_mut(inner.held_body).unwrap();
+
+        #[cfg(not(target_arch = "wasm32"))]
         shader_events.detach_shader(body.entity(), outline_shader.0.clone());
+        
         tool_state.0 = None;
       }
     }
@@ -98,6 +100,7 @@ fn tool_system(
             body.set_mass_properties(mass_properties.0, false);
           }
 
+          #[cfg(not(target_arch = "wasm32"))]
           shader_events.attach_shader(body.entity(), outline_shader.0.clone());
 
           let hit_point = hit.ray.point_at(hit.intersection.toi);

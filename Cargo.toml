@@ -8,19 +8,30 @@ edition = "2018"
 # members = ["crates/*"]
 exclude = ["scripts/example_script"]
 
+[features]
+default = ["bevy/default"]
+web = ["bevy/web", "bevy/png", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf", "bevy_webgl2"]
+
 [profile.release]
 debug = true
 
 [profile.dev.package."*"]
 opt-level = 3
 
+[profile.dev]
+opt-level = 1
+
 [dependencies]
-bevy = "0.4.0"
+bevy = {version = "0.4.0", default-features = false}
 bevy_rapier3d = "0.7.0"
 ncollide3d = "0.26"
+winit = {version = "0.24.0"}
+bevy_webgl2 = {version = "0.4.0", optional = true}
+
 
 # crateton_core = { path = "crates/crateton_core" }
 # crateton_scripts = { path = "crates/crateton_scripts" }
 
 [patch.crates-io]
 bevy = { path = "../bevy" }
+winit = { path = "../winit" }

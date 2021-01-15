@@ -1,4 +1,13 @@
-use bevy::{asset::LoadState, prelude::*, scene::InstanceId};
+use bevy::{
+  asset::LoadState,
+  pbr::render_graph::FORWARD_PIPELINE_HANDLE,
+  prelude::*,
+  render::{
+    pipeline::{PipelineDescriptor, RasterizationStateDescriptor, RenderPipeline},
+    shader::{ShaderStage, ShaderStages},
+  },
+  scene::InstanceId,
+};
 use bevy_rapier3d::{
   na::Isometry3,
   rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
@@ -75,6 +84,8 @@ fn init_assets(
   scene_spawner: ResMut<SceneSpawner>,
   mesh_handles: Query<&Handle<Mesh>>,
   mut debug_cube: ResMut<DebugCube>,
+  // mut pipelines: ResMut<Assets<PipelineDescriptor>>,
+  // mut shaders: ResMut<Assets<Shader>>,
 ) {
   debug_cube.0 = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
 
@@ -124,6 +135,11 @@ fn init_assets(
     .with(collider)
     .with_bundle(pbr);
 
+  // let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
+  //   vertex: asset_handles.shader_handles["shaders/silhouette.vert"].clone(),
+  //   fragment: Some(asset_handles.shader_handles["shaders/silhouette.frag"].clone()),
+  // }));
+
   /*
    * Box
    */
@@ -137,7 +153,7 @@ fn init_assets(
       mesh: debug_cube.0.clone(),
       material: materials.add(color.into()),
       // render_pipelines: RenderPipelines::from_pipelines(vec![
-      //   RenderPipeline::new(FORWARD_PIPELINE_HANDLE.typed()),
+      //   //RenderPipeline::new(FORWARD_PIPELINE_HANDLE.typed()),
       //   RenderPipeline::new(pipeline_handle),
       // ]),
       ..Default::default()

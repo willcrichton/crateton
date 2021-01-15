@@ -2,19 +2,18 @@ use bevy::prelude::*;
 use bevy_rapier3d::physics::RapierPhysicsPlugin;
 
 mod assets;
+mod math;
 mod physics;
 mod player;
-mod tools;
-mod math;
-mod shaders;
 mod prelude;
+mod shaders;
+mod tools;
 
 fn main() {
-  App::build()
+  let mut app = App::build();
+  app
     .add_resource(Msaa::default())
     .add_resource(WindowDescriptor {
-      width: 1280. * 2.,
-      height: 720. * 2.,
       cursor_locked: true,
       cursor_visible: false,
       ..Default::default()
@@ -27,8 +26,12 @@ fn main() {
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
     .add_plugin(shaders::ShadersPlugin)
-    .add_startup_system(setup_graphics.system())
-    .run();
+    .add_startup_system(setup_graphics.system());
+
+  #[cfg(target_arch = "wasm32")]
+  app.add_plugin(bevy_webgl2::WebGL2Plugin);
+
+  app.run();
 }
 
 fn setup_graphics(commands: &mut Commands) {

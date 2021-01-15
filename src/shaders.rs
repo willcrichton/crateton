@@ -55,10 +55,10 @@ fn handle_shader_events(
 
     // Add the shader to the set of render pipelines
     let mut render_pipelines = render_pipelines_query.get_mut(*entity).unwrap();
-    render_pipelines.pipelines.push(RenderPipeline::specialized(
+    render_pipelines.pipelines = vec![RenderPipeline::specialized(
       pipeline.clone(),
       specialization,
-    ));
+    )];
   }
 
   for DetachShaderEvent { entity, pipeline } in readers.detach.iter(&events.detach) {

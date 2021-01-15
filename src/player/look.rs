@@ -69,6 +69,7 @@ pub fn input_to_look(
     // NOTE: -= to invert
     delta -= motion.delta;
   }
+
   if delta.length_squared() > 1E-6 {
     delta *= settings.sensitivity;
     settings.yaw_pitch_roll += delta.extend(0.0);
