@@ -1,0 +1,23 @@
+on: push
+
+name: Publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: wasm32-unknown-unknown
+      - run: git clone https://github.com/bevyengine/bevy .. && git clone https://github.com/willcrichton/winit/ ..
+      - run: cargo install cargo-make
+      - run: cargo make build-web --profile release
+      - run: rm wasm/assets && cp -r assets wasm && rm -r wasm/target/release && rm -r wasm/target/wasm32-unknown-unknown
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./wasm
