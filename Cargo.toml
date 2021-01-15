@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
 edition = "2018"
 
-[workspace]
-# members = ["crates/*"]
-exclude = ["scripts/example_script"]
+# [workspace]
+# # members = ["crates/*"]
+# exclude = ["scripts/example_script"]
 
 [features]
 default = ["bevy/default"]
