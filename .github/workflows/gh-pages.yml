@@ -13,7 +13,7 @@ jobs:
           toolchain: stable
           override: true
           target: wasm32-unknown-unknown
-      - run: git clone https://github.com/bevyengine/bevy .. && git clone https://github.com/willcrichton/winit/ ..
+      - run: git clone https://github.com/bevyengine/bevy ../bevy && git clone https://github.com/willcrichton/winit/ ../winit
       - run: cargo install cargo-make
       - run: cargo make build-web --profile release
       - run: rm wasm/assets && cp -r assets wasm && rm -r wasm/target/release && rm -r wasm/target/wasm32-unknown-unknown
