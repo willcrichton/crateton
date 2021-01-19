@@ -113,7 +113,7 @@ fn tool_system(
   }
 }
 
-const FORCE_MULTIPLIER: f32 = 100.;
+const FORCE_MULTIPLIER: f32 = 20.;
 const MOUSE_WHEEL_MULTIPLIER: f32 = 3.;
 const DISTANCE_MIN: f32 = 3.;
 
