@@ -1,5 +1,7 @@
 use bevy::prelude::*;
-use bevy_rapier3d::na::{Point3, Quaternion, Vector3, Unit, UnitQuaternion};
+use bevy_rapier3d::na::{
+  Isometry3, Point3, Quaternion, Translation3, Unit, UnitQuaternion, Vector3,
+};
 
 pub trait NalgebraVecExt {
   fn to_glam_vec3(&self) -> Vec3;
@@ -10,7 +12,7 @@ impl NalgebraVecExt for Vector3<f32> {
     Vec3::new(self.x, self.y, self.z)
   }
 }
-  
+
 impl NalgebraVecExt for Point3<f32> {
   fn to_glam_vec3(&self) -> Vec3 {
     Vec3::new(self.x, self.y, self.z)
@@ -20,6 +22,7 @@ impl NalgebraVecExt for Point3<f32> {
 pub trait GlamVecExt {
   fn to_na_vector3(&self) -> Vector3<f32>;
   fn to_na_point3(&self) -> Point3<f32>;
+  fn to_na_translation(&self) -> Translation3<f32>;
 }
 
 impl GlamVecExt for Vec3 {
@@ -29,6 +32,10 @@ impl GlamVecExt for Vec3 {
 
   fn to_na_point3(&self) -> Point3<f32> {
     Point3::new(self.x, self.y, self.z)
+  }
+
+  fn to_na_translation(&self) -> Translation3<f32> {
+    Translation3::new(self.x, self.y, self.z)
   }
 }
 
@@ -44,5 +51,33 @@ impl GlamQuatExt for Quat {
 
   fn to_na_unit_quat(&self) -> UnitQuaternion<f32> {
     Unit::new_normalize(self.to_na_quat())
+  }
+}
+
+pub trait TransformExt {
+  fn to_na_isometry(&self) -> (Isometry3<f32>, Vector3<f32>);
+}
+
+impl TransformExt for Transform {
+  fn to_na_isometry(&self) -> (Isometry3<f32>, Vector3<f32>) {
+    (
+      Isometry3::from_parts(
+        self.translation.to_na_translation(),
+        self.rotation.to_na_unit_quat(),
+      ),
+      self.scale.to_na_vector3(),
+    )
+  }
+}
+
+impl TransformExt for GlobalTransform {
+  fn to_na_isometry(&self) -> (Isometry3<f32>, Vector3<f32>) {
+    (
+      Isometry3::from_parts(
+        self.translation.to_na_translation(),
+        self.rotation.to_na_unit_quat(),
+      ),
+      self.scale.to_na_vector3(),
+    )
   }
 }

@@ -25,7 +25,6 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .spawn((
       controller::BodyTag,
       controller::CharacterController::default(),
-      //ColliderBuilder::cylinder(0.5*height, 1.0).density(200.),
       Transform::identity(),
       GlobalTransform::identity(),
     ))
@@ -33,11 +32,12 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .unwrap();
   let rigid_body = RigidBodyBuilder::new_dynamic()
     .translation(3., height * 2., 0.)
-    .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false));
+    .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false))
+    .entity(body);
   let collider = ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
     .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
     .density(1.0);
-  commands.with_rigid_body(rigid_body);
+  commands.with(rigid_body);
   commands.with(collider);
 
   let cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));

@@ -1,7 +1,7 @@
 // Adapted from https://github.com/Laumania/Unity3d-PhysicsGun
 
 use crate::{
-  assets::{AssetHandles, AssetState},
+  assets::AssetRegistry,
   player::{
     raycast::{CastFromEyeDeps, LookDirDeps},
     spawn::Player,
@@ -13,9 +13,7 @@ use bevy::{
   input::mouse::MouseWheel,
   prelude::*,
   render::{
-    pipeline::{
-      CullMode, PipelineDescriptor, RasterizationStateDescriptor,
-    },
+    pipeline::{CullMode, PipelineDescriptor, RasterizationStateDescriptor},
     shader::ShaderStages,
   },
 };
@@ -52,22 +50,22 @@ fn tool_system(
 ) {
   match tool_state.0.as_ref() {
     Some(inner) => {
+      let body = cast_from_eye_deps.bodies.get_mut(inner.held_body).unwrap();
       let reset = if !mouse_input.pressed(MouseButton::Left) {
         true
       } else if mouse_input.just_pressed(MouseButton::Right) {
-        let body = cast_from_eye_deps.bodies.get_mut(inner.held_body).unwrap();
         let mass_properties = body.mass_properties().clone();
 
         // Save mass properties to unfreeze later
         commands.insert_one(body.entity(), CachedMassProperties(mass_properties.clone()));
 
         // Freeze entity
-        body.set_angvel(Vector3::zeros(), false);
-        body.set_linvel(Vector3::zeros(), false);
         body.set_mass_properties(
           MassProperties::new(mass_properties.local_com, 0., Vector3::zeros()),
           false,
         );
+        body.set_angvel(Vector3::zeros(), false);
+        body.set_linvel(Vector3::zeros(), false);
 
         true
       } else {
@@ -75,11 +73,7 @@ fn tool_system(
       };
 
       if reset {
-        let body = cast_from_eye_deps.bodies.get_mut(inner.held_body).unwrap();
-
-        #[cfg(not(target_arch = "wasm32"))]
         shader_events.detach_shader(body.entity(), outline_shader.0.clone());
-        
         tool_state.0 = None;
       }
     }
@@ -100,7 +94,6 @@ fn tool_system(
             body.set_mass_properties(mass_properties.0, false);
           }
 
-          #[cfg(not(target_arch = "wasm32"))]
           shader_events.attach_shader(body.entity(), outline_shader.0.clone());
 
           let hit_point = hit.ray.point_at(hit.intersection.toi);
@@ -167,10 +160,11 @@ fn move_system(
 #[derive(Default)]
 struct OutlineShader(Handle<PipelineDescriptor>);
 
-fn init_tool(
+fn tool_assets(
   mut pipelines: ResMut<Assets<PipelineDescriptor>>,
   mut outline_shader: ResMut<OutlineShader>,
-  asset_handles: Res<AssetHandles>,
+  mut asset_registry: ResMut<AssetRegistry>,
+  asset_server: Res<AssetServer>,
 ) {
   outline_shader.0 = pipelines.add(PipelineDescriptor {
     rasterization_state: Some(RasterizationStateDescriptor {
@@ -178,8 +172,8 @@ fn init_tool(
       ..Default::default()
     }),
     ..PipelineDescriptor::default_config(ShaderStages {
-      vertex: asset_handles.shader_handles["shaders/silhouette.vert"].clone(),
-      fragment: Some(asset_handles.shader_handles["shaders/silhouette.frag"].clone()),
+      vertex: asset_registry.register_shader(&asset_server, "shaders/silhouette.vert"),
+      fragment: Some(asset_registry.register_shader(&asset_server, "shaders/silhouette.frag")),
     })
   });
 }
@@ -192,6 +186,6 @@ impl Plugin for ToolPlugin {
       .init_resource::<ToolState>()
       .add_system(tool_system.system())
       .add_system(move_system.system())
-      .on_state_enter("assets", AssetState::Finished, init_tool.system());
+      .add_startup_system(tool_assets.system());
   }
 }

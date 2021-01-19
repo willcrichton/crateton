@@ -8,11 +8,12 @@ mod player;
 mod prelude;
 mod shaders;
 mod tools;
+mod map;
 
 fn main() {
   let mut app = App::build();
   app
-    .add_resource(Msaa::default())
+    .add_resource(Msaa { samples: 4})
     .add_resource(WindowDescriptor {
       cursor_locked: true,
       cursor_visible: false,
@@ -26,17 +27,10 @@ fn main() {
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
     .add_plugin(shaders::ShadersPlugin)
-    .add_startup_system(setup_graphics.system());
+    .add_plugin(map::MapPlugin);
 
   #[cfg(target_arch = "wasm32")]
   app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
   app.run();
-}
-
-fn setup_graphics(commands: &mut Commands) {
-  commands.spawn(LightBundle {
-    transform: Transform::from_translation(Vec3::new(4.0, 5.0, 4.0)),
-    ..Default::default()
-  });
 }
