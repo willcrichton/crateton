@@ -12,6 +12,7 @@ pub enum AssetState {
 pub struct AssetRegistry {
   pub scene_handles: Vec<Handle<Scene>>,
   pub shader_handles: Vec<Handle<Shader>>,
+  pub texture_handles: Vec<Handle<Texture>>,
 }
 
 impl AssetRegistry {
@@ -21,7 +22,7 @@ impl AssetRegistry {
     path: impl AsRef<str>,
   ) -> Handle<Scene> {
     let handle = asset_server.load(path.as_ref());
-    self.scene_handles.push(handle.clone());
+    self.scene_handles.push(handle.as_weak());
     handle
   }
 
@@ -31,7 +32,17 @@ impl AssetRegistry {
     path: impl AsRef<str>,
   ) -> Handle<Shader> {
     let handle = asset_server.load(path.as_ref());
-    self.shader_handles.push(handle.clone());
+    self.shader_handles.push(handle.as_weak());
+    handle
+  }
+
+  pub fn register_texture(
+    &mut self,
+    asset_server: &AssetServer,
+    path: impl AsRef<str>,
+  ) -> Handle<Texture> {
+    let handle = asset_server.load(path.as_ref());
+    self.texture_handles.push(handle.as_weak());
     handle
   }
 }

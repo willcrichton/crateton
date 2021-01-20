@@ -4,12 +4,14 @@ use crate::{
 };
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use bevy::prelude::*;
 
 #[derive(Default)]
-struct MapAssets {
-  models: HashMap<String, Handle<Scene>>,
+pub struct MapAssets {
+  pub models: HashMap<String, Handle<Scene>>,
+  pub thumbnails: HashMap<String, Handle<Texture>>,
 }
 
 fn init_map(
@@ -70,7 +72,7 @@ fn init_map(
     });
   }
 
-  let monkey = map_assets.models["models/Monkey.gltf#Scene0"].clone();
+  let monkey = map_assets.models["Monkey"].clone();
   {
     let scene = scenes.get_mut(monkey.clone()).unwrap();
     let mut scene_commands = Commands::default();
@@ -104,13 +106,24 @@ fn load_map_assets(
   mut asset_registry: ResMut<AssetRegistry>,
   asset_server: Res<AssetServer>,
 ) {
-  map_assets.models = vec!["models/Monkey.gltf#Scene0"]
-    .into_iter()
-    .map(|path| {
-      let model = asset_registry.register_model(&asset_server, &path);
-      (path.to_string(), model)
-    })
-    .collect();
+  let (models, thumbnails) = vec![
+    "models/monkey/Monkey.gltf#Scene0",
+    //"models/car/car.gltf#Scene0", 
+    "models/FlightHelmet/FlightHelmet.gltf#Scene0",
+  ]
+  .into_iter()
+  .map(|path| {
+    let model = asset_registry.register_model(&asset_server, &path);
+    let path = Path::new(path);
+    let thumbnail_path = path.parent().unwrap().join("thumbnail.jpg");
+    let thumbnail =
+      asset_registry.register_texture(&asset_server, thumbnail_path.to_str().unwrap());
+    let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
+    ((stem.clone(), model), (stem, thumbnail))
+  })
+  .unzip();
+  map_assets.models = models;
+  map_assets.thumbnails = thumbnails;
 }
 
 pub struct MapPlugin;

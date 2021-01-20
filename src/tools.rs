@@ -11,7 +11,6 @@ use crate::{
 };
 use bevy::{
   input::mouse::MouseWheel,
-  prelude::*,
   render::{
     pipeline::{CullMode, PipelineDescriptor, RasterizationStateDescriptor},
     shader::ShaderStages,
@@ -73,6 +72,7 @@ fn tool_system(
       };
 
       if reset {
+        #[cfg(not(target_arch = "wasm32"))]
         shader_events.detach_shader(body.entity(), outline_shader.0.clone());
         tool_state.0 = None;
       }
@@ -94,6 +94,7 @@ fn tool_system(
             body.set_mass_properties(mass_properties.0, false);
           }
 
+          #[cfg(not(target_arch = "wasm32"))]
           shader_events.attach_shader(body.entity(), outline_shader.0.clone());
 
           let hit_point = hit.ray.point_at(hit.intersection.toi);

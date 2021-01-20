@@ -26,9 +26,10 @@ pub fn create_mass(
 
 pub fn body_to_velocity(
   bodies: Res<RigidBodySet>,
-  mut query: Query<(&RigidBodyHandleComponent, &mut CharacterController), With<BodyTag>>,
+  mut query: Query<&RigidBodyHandleComponent, With<BodyTag>>,
+  mut controller: ResMut<CharacterController>,
 ) {
-  for (body_handle, mut controller) in query.iter_mut() {
+  for body_handle in query.iter_mut() {
     let body = bodies
       .get(body_handle.handle())
       .expect("Failed to get RigidBody");
@@ -41,7 +42,8 @@ pub fn controller_to_rapier_dynamic_force(
   forces: Res<Events<ForceEvent>>,
   mut reader: ResMut<ControllerEvents>,
   mut bodies: ResMut<RigidBodySet>,
-  mut query: Query<(&RigidBodyHandleComponent, &CharacterController), With<BodyTag>>,
+  mut query: Query<&RigidBodyHandleComponent, With<BodyTag>>,
+  controller: ResMut<CharacterController>,
 ) {
   let mut force = Vec3::zero();
   for event in reader.forces.iter(&forces) {
@@ -49,7 +51,7 @@ pub fn controller_to_rapier_dynamic_force(
   }
 
   if force.length_squared() > 1E-6 {
-    for (body_handle, controller) in query.iter_mut() {
+    for body_handle in query.iter_mut() {
       if !controller.fly {
         let body = bodies
           .get_mut(body_handle.handle())

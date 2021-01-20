@@ -9,6 +9,7 @@ mod prelude;
 mod shaders;
 mod tools;
 mod map;
+mod ui;
 
 fn main() {
   let mut app = App::build();
@@ -27,7 +28,8 @@ fn main() {
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
     .add_plugin(shaders::ShadersPlugin)
-    .add_plugin(map::MapPlugin);
+    .add_plugin(map::MapPlugin)
+    .add_plugin(ui::UiPlugin);
 
   #[cfg(target_arch = "wasm32")]
   app.add_plugin(bevy_webgl2::WebGL2Plugin);

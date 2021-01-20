@@ -82,12 +82,13 @@ pub fn input_to_events(
   mut translation_events: ResMut<Events<TranslationEvent>>,
   mut impulse_events: ResMut<Events<ImpulseEvent>>,
   mut force_events: ResMut<Events<ForceEvent>>,
-  mut controller_query: Query<(&Mass, &LookEntity, &mut CharacterController)>,
+  mut controller: ResMut<CharacterController>,
+  mut controller_query: Query<(&Mass, &LookEntity)>,
   look_direction_query: Query<&LookDirection>,
   mut transform_query: Query<(&mut Transform, &mut Perspective)>,
 ) {
   let xz = Vec3::new(1.0, 0.0, 1.0);
-  for (mass, look_entity, mut controller) in controller_query.iter_mut() {
+  for (mass, look_entity) in controller_query.iter_mut() {
     let camera_entity = look_entity.0;
     controller.sim_to_render += time.delta_seconds();
 

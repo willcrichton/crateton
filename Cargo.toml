@@ -9,8 +9,8 @@ edition = "2018"
 # exclude = ["scripts/example_script"]
 
 [features]
-default = ["bevy/default"]
-web = ["bevy/png", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf", "bevy_webgl2"]
+default = ["bevy/default", "bevy/jpeg"]
+web = ["bevy/png", "bevy/jpeg", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf", "bevy_webgl2"]
 
 [profile.release]
 debug = true
@@ -27,7 +27,7 @@ bevy_rapier3d = "0.7.0"
 ncollide3d = "0.26"
 winit = {version = "0.24.0"}
 bevy_webgl2 = {version = "0.4.0", optional = true}
-
+bevy_egui = "0.1.2"
 
 # crateton_core = { path = "crates/crateton_core" }
 # crateton_scripts = { path = "crates/crateton_scripts" }
@@ -35,3 +35,5 @@ bevy_webgl2 = {version = "0.4.0", optional = true}
 [patch.crates-io]
 bevy = { path = "../bevy" }
 winit = { path = "../winit" }
+bevy_winit = { path = "../bevy/crates/bevy_winit" } # only needed for bevy_egui
+bevy_egui = { path = "../bevy_egui" }

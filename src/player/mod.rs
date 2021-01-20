@@ -30,6 +30,7 @@ impl Plugin for PlayerControllerPlugin {
       .add_event::<events::ForceEvent>()
       .init_resource::<look::MouseMotionState>()
       .init_resource::<look::MouseSettings>()
+      .init_resource::<controller::CharacterController>()
       .add_stage_after(
         bevy::app::stage::PRE_UPDATE,
         PROCESS_INPUT_EVENTS,
