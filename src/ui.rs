@@ -1,10 +1,11 @@
 use crate::{
   assets::{AssetState, ASSET_STAGE},
-  map::MapAssets,
+  map::{MapAssets, SpawnModelEvent},
   player::controller::CharacterController,
   prelude::*,
 };
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_world_visualizer::WorldVisualizerParams;
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -35,7 +36,6 @@ fn load_assets(
   }
 }
 
-
 fn ui_system(
   controller: Res<CharacterController>,
   keyboard_input: Res<Input<KeyCode>>,
@@ -43,6 +43,7 @@ fn ui_system(
   mut egui_context: ResMut<EguiContext>,
   map_assets: Res<MapAssets>,
   interned_textures: Res<InternedTextures>,
+  mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
 ) {
   let ctx = &mut egui_context.ctx;
   let window = windows.get_primary_mut().unwrap();
@@ -56,17 +57,35 @@ fn ui_system(
 
   if keyboard_input.pressed(controller.input_map.key_show_ui) {
     egui::Window::new("Spawn window").show(ctx, |ui| {
-      for path in map_assets.thumbnails.keys() {
+      for model_name in map_assets.thumbnails.keys() {
         let thumbnail = ui.add(egui::widgets::ImageButton::new(
-            egui::TextureId::User(interned_textures.get_egui_id(path)),
-            [256.0, 256.0],
+          egui::TextureId::User(interned_textures.get_egui_id(model_name)),
+          [256.0, 256.0],
         ));
 
         if thumbnail.clicked {
-          // TODO: send an event to spawn a model
+          spawn_model_events.send(SpawnModelEvent {
+            model_name: model_name.clone(),
+          })
         }
       }
     });
+  }
+}
+
+fn toggle_world_visualizer(
+  mut params: ResMut<WorldVisualizerParams>,
+  keyboard_input: Res<Input<KeyCode>>,
+  character_controller: Res<CharacterController>,
+  mut windows: ResMut<Windows>,
+) {
+  let window = windows.get_primary_mut().unwrap();
+
+  if keyboard_input.just_pressed(character_controller.input_map.key_toggle_world_visualizer) {
+    params.show = !params.show;
+    window.set_cursor_lock_mode(params.show);
+    window.set_cursor_visibility(params.show);
+    // NOTE: potential inconsistency if pressing tab and alt together
   }
 }
 
@@ -76,6 +95,7 @@ impl Plugin for UiPlugin {
     app
       .init_resource::<InternedTextures>()
       .add_system(ui_system.system())
+      .add_system(toggle_world_visualizer.system())
       .add_plugin(EguiPlugin)
       .on_state_enter(ASSET_STAGE, AssetState::Finished, load_assets.system());
   }

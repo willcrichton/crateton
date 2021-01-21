@@ -1,6 +1,5 @@
 use bevy::{asset::LoadState, prelude::*};
 
-
 #[derive(Clone, Debug)]
 pub enum AssetState {
   Start,

@@ -1,5 +1,5 @@
 use super::{
-  events::{ControllerEvents, ForceEvent, ImpulseEvent, PitchEvent, TranslationEvent, YawEvent},
+  events::{ControllerEvents, ForceEvent, ImpulseEvent, TranslationEvent},
   input_map::InputMap,
   look::{LookDirection, LookEntity},
 };
@@ -215,11 +215,10 @@ pub fn input_to_events(
 }
 
 pub fn controller_to_yaw(
-  mut reader: ResMut<ControllerEvents>,
-  yaws: Res<Events<YawEvent>>,
+  mut reader: ControllerEvents,
   mut query: Query<&mut Transform, With<YawTag>>,
 ) {
-  if let Some(yaw) = reader.yaws.latest(&yaws) {
+  if let Some(yaw) = reader.yaws.iter().last() {
     for mut transform in query.iter_mut() {
       transform.rotation = Quat::from_rotation_y(**yaw);
     }
@@ -227,11 +226,10 @@ pub fn controller_to_yaw(
 }
 
 pub fn controller_to_pitch(
-  mut reader: ResMut<ControllerEvents>,
-  pitches: Res<Events<PitchEvent>>,
+  mut reader: ControllerEvents,
   mut query: Query<&mut Transform, With<HeadTag>>,
 ) {
-  if let Some(pitch) = reader.pitches.latest(&pitches) {
+  if let Some(pitch) = reader.pitches.iter().last() {
     for mut transform in query.iter_mut() {
       transform.rotation = Quat::from_rotation_ypr(0.0, **pitch, 0.0);
     }

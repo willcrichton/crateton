@@ -94,7 +94,7 @@ fn tool_system(
             body.set_mass_properties(mass_properties.0, false);
           }
 
-          #[cfg(not(target_arch = "wasm32"))]
+          //#[cfg(not(target_arch = "wasm32"))]
           shader_events.attach_shader(body.entity(), outline_shader.0.clone());
 
           let hit_point = hit.ray.point_at(hit.intersection.toi);
@@ -120,8 +120,7 @@ const DISTANCE_MIN: f32 = 3.;
 
 fn move_system(
   time: Res<Time>,
-  mut mouse_wheel_reader: Local<EventReader<MouseWheel>>,
-  mouse_wheel_events: Res<Events<MouseWheel>>,
+  mut mouse_wheel_reader: EventReader<MouseWheel>,
   mut tool_state: ResMut<ToolState>,
   mut bodies: ResMut<RigidBodySet>,
   player: Res<Player>,
@@ -130,7 +129,7 @@ fn move_system(
 ) {
   if let Some(inner) = tool_state.0.as_mut() {
     // Change distance from player based on mouse wheel
-    for event in mouse_wheel_reader.iter(&mouse_wheel_events) {
+    for event in mouse_wheel_reader.iter() {
       inner.distance =
         (inner.distance + event.y.signum() * MOUSE_WHEEL_MULTIPLIER * -1.).max(DISTANCE_MIN);
     }

@@ -25,8 +25,10 @@ fn init_map(
     transform: Transform::from_translation(Vec3::new(4.0, 5.0, 4.0)),
     ..Default::default()
   }];
-  for light in lights {
-    commands.spawn(light);
+  for (i, light) in lights.into_iter().enumerate() {
+    commands
+      .spawn(light)
+      .with(Name::new(format!("light {}", i)));
   }
 
   let ground_size = 200.1;
@@ -44,14 +46,14 @@ fn init_map(
     material: materials.add(color.into()),
     ..Default::default()
   };
-  let static_objects = vec![ground];
-  for obj in static_objects {
-    commands.spawn(obj);
-    commands.with(ColliderParams {
+  commands.spawn(ground);
+  commands.with_bundle((
+    ColliderParams {
       body_status: AltBodyStatus::Static,
-      mass: 1.0,
-    });
-  }
+      mass: 10000.0,
+    },
+    Name::new("ground"),
+  ));
 
   let box_ = PbrBundle {
     mesh: cube.clone(),
@@ -63,34 +65,48 @@ fn init_map(
     // ]),
     ..Default::default()
   };
-  let dynamic_objects = vec![box_];
-  for obj in dynamic_objects {
-    commands.spawn(obj);
-    commands.with(ColliderParams {
+  commands.spawn(box_);
+  commands.with_bundle((
+    ColliderParams {
       body_status: AltBodyStatus::Dynamic,
       mass: 1.0,
-    });
-  }
+    },
+    Name::new("box"),
+  ));
 
-  let monkey = map_assets.models["Monkey"].clone();
-  {
-    let scene = scenes.get_mut(monkey.clone()).unwrap();
+  for model in map_assets.models.values() {
+    let scene = scenes.get_mut(model.clone()).unwrap();
     let mut scene_commands = Commands::default();
     for (entity, _) in scene.world.query::<(Entity, &Handle<Mesh>)>() {
       scene_commands.insert(
         entity,
         (
-          ColliderParams {
-            body_status: AltBodyStatus::Dynamic,
-            mass: 1.0,
-          },
-          Transform::from_translation(Vec3::new(0., 10., 0.)),
+          // ColliderParams {
+          //   body_status: AltBodyStatus::Dynamic,
+          //   mass: 1.0,
+          // },
+          //Transform::identity(),
+          GlobalTransform::identity(),
         ),
       );
     }
     scene_commands.apply(&mut scene.world, &mut Resources::default());
   }
-  commands.spawn_scene(monkey);
+
+  let monkey = map_assets.models["Monkey"].clone();
+  commands
+    .spawn((
+      Name::new("monkey"),
+      Transform::from_translation(Vec3::new(0., 10., 0.)),
+      GlobalTransform::default(),
+      ColliderParams {
+        body_status: AltBodyStatus::Dynamic,
+        mass: 1.0,
+      },
+    ))
+    .with_children(|parent| {
+      parent.spawn_scene(monkey);
+    });
 }
 
 // if asset_registry
@@ -108,7 +124,7 @@ fn load_map_assets(
 ) {
   let (models, thumbnails) = vec![
     "models/monkey/Monkey.gltf#Scene0",
-    //"models/car/car.gltf#Scene0", 
+    //"models/car/car.gltf#Scene0",
     "models/FlightHelmet/FlightHelmet.gltf#Scene0",
   ]
   .into_iter()
@@ -126,13 +142,31 @@ fn load_map_assets(
   map_assets.thumbnails = thumbnails;
 }
 
+#[derive(Debug)]
+pub struct SpawnModelEvent {
+  pub model_name: String,
+}
+
+fn listen_for_spawn_models(
+  commands: &mut Commands,
+  mut event_reader: EventReader<SpawnModelEvent>,
+  map_assets: Res<MapAssets>,
+) {
+  for event in event_reader.iter() {
+    let model = map_assets.models[&event.model_name].clone();
+    commands.spawn_scene(model);
+  }
+}
+
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
+      .add_event::<SpawnModelEvent>()
       .register_type::<ColliderParams>()
       .init_resource::<MapAssets>()
       .add_startup_system(load_map_assets.system())
+      .add_system(listen_for_spawn_models.system())
       .on_state_enter(ASSET_STAGE, AssetState::Finished, init_map.system());
   }
 }

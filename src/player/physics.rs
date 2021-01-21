@@ -39,14 +39,13 @@ pub fn body_to_velocity(
 }
 
 pub fn controller_to_rapier_dynamic_force(
-  forces: Res<Events<ForceEvent>>,
-  mut reader: ResMut<ControllerEvents>,
+  mut reader: ControllerEvents,
   mut bodies: ResMut<RigidBodySet>,
   mut query: Query<&RigidBodyHandleComponent, With<BodyTag>>,
   controller: ResMut<CharacterController>,
 ) {
   let mut force = Vec3::zero();
-  for event in reader.forces.iter(&forces) {
+  for event in reader.forces.iter() {
     force += **event;
   }
 
@@ -64,8 +63,7 @@ pub fn controller_to_rapier_dynamic_force(
 }
 
 pub fn controller_to_fly(
-  translations: Res<Events<TranslationEvent>>,
-  mut reader: ResMut<ControllerEvents>,
+  mut reader: ControllerEvents,
   mut bodies: ResMut<RigidBodySet>,
   mut query: Query<(&RigidBodyHandleComponent, &CharacterController), With<BodyTag>>,
 ) {
@@ -80,7 +78,7 @@ pub fn controller_to_fly(
       let mut position = body.position().clone();
       let delta = reader
         .translations
-        .iter(&translations)
+        .iter()
         .fold(Vec3::zero(), |a, b| a + **b);
       position.translation.vector += Vector3::new(delta.x, delta.y, delta.z);
       body.set_position(position, false);

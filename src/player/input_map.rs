@@ -12,6 +12,7 @@ pub struct InputMap {
   pub key_toggle_camera_view: KeyCode,
   pub key_toggle_fly: KeyCode,
   pub key_show_ui: KeyCode,
+  pub key_toggle_world_visualizer: KeyCode,
 
   pub invert_y: bool,
 }
@@ -29,6 +30,7 @@ impl Default for InputMap {
       key_toggle_camera_view: KeyCode::V,
       key_toggle_fly: KeyCode::F,
       key_show_ui: KeyCode::Tab,
+      key_toggle_world_visualizer: KeyCode::LAlt,
       invert_y: false,
     }
   }

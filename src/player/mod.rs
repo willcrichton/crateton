@@ -6,8 +6,8 @@ pub mod events;
 pub mod input_map;
 pub mod look;
 pub mod physics;
-pub mod spawn;
 pub mod raycast;
+pub mod spawn;
 
 const PROCESS_INPUT_EVENTS: &str = "process_input_events";
 const APPLY_INPUT: &str = "apply_input";
@@ -28,7 +28,6 @@ impl Plugin for PlayerControllerPlugin {
       .add_event::<events::TranslationEvent>()
       .add_event::<events::ImpulseEvent>()
       .add_event::<events::ForceEvent>()
-      .init_resource::<look::MouseMotionState>()
       .init_resource::<look::MouseSettings>()
       .init_resource::<controller::CharacterController>()
       .add_stage_after(
@@ -40,7 +39,6 @@ impl Plugin for PlayerControllerPlugin {
       .add_system_to_stage(PROCESS_INPUT_EVENTS, look::forward_up.system())
       //
       // Turn events into forces on controller
-      .init_resource::<events::ControllerEvents>()
       .add_system_to_stage(PROCESS_INPUT_EVENTS, controller::input_to_events.system())
       .add_system_to_stage(
         bevy::app::stage::UPDATE,

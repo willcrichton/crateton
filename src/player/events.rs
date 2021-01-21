@@ -1,15 +1,15 @@
-use bevy::prelude::*;
+use bevy::{ecs::SystemParam, prelude::*};
 use std::ops::Deref;
 
-#[derive(Default)]
-pub struct ControllerEvents {
-  pub translations: EventReader<TranslationEvent>,
-  pub impulses: EventReader<ImpulseEvent>,
-  pub forces: EventReader<ForceEvent>,
-  pub yaws: EventReader<YawEvent>,
-  pub pitches: EventReader<PitchEvent>,
-  pub looks: EventReader<LookEvent>,
-  pub look_deltas: EventReader<LookDeltaEvent>,
+#[derive(SystemParam)]
+pub struct ControllerEvents<'a> {
+  pub translations: EventReader<'a, TranslationEvent>,
+  pub impulses: EventReader<'a, ImpulseEvent>,
+  pub forces: EventReader<'a, ForceEvent>,
+  pub yaws: EventReader<'a, YawEvent>,
+  pub pitches: EventReader<'a, PitchEvent>,
+  pub looks: EventReader<'a, LookEvent>,
+  pub look_deltas: EventReader<'a, LookDeltaEvent>,
 }
 
 #[derive(Debug)]

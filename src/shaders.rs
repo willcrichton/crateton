@@ -1,8 +1,8 @@
 use bevy::{
+  ecs::SystemParam,
   prelude::*,
   render::pipeline::{PipelineDescriptor, PipelineSpecialization, RenderPipeline},
 };
-
 
 struct AttachShaderEvent {
   entity: Entity,
@@ -20,10 +20,10 @@ pub struct ShaderEvents {
   detach: Events<DetachShaderEvent>,
 }
 
-#[derive(Default)]
-pub struct ShaderEventReaders {
-  attach: EventReader<AttachShaderEvent>,
-  detach: EventReader<DetachShaderEvent>,
+#[derive(SystemParam)]
+pub struct ShaderEventReaders<'a> {
+  attach: EventReader<'a, AttachShaderEvent>,
+  detach: EventReader<'a, DetachShaderEvent>,
 }
 
 impl ShaderEvents {
@@ -37,13 +37,12 @@ impl ShaderEvents {
 }
 
 fn handle_shader_events(
-  mut readers: ResMut<ShaderEventReaders>,
-  events: Res<ShaderEvents>,
+  mut readers: ShaderEventReaders,
   mut render_pipelines_query: Query<&mut RenderPipelines>,
   mesh_query: Query<&Handle<Mesh>>,
   meshes: Res<Assets<Mesh>>,
 ) {
-  for AttachShaderEvent { entity, pipeline } in readers.attach.iter(&events.attach) {
+  for AttachShaderEvent { entity, pipeline } in readers.attach.iter() {
     // Get the entity's mesh so we can specialize the shader to its attributes
     let specialization = {
       let mesh_handle = mesh_query.get(*entity).unwrap();
@@ -62,7 +61,7 @@ fn handle_shader_events(
     ));
   }
 
-  for DetachShaderEvent { entity, pipeline } in readers.detach.iter(&events.detach) {
+  for DetachShaderEvent { entity, pipeline } in readers.detach.iter() {
     // Remove shader from the set of render pipelines
     let mut render_pipelines = render_pipelines_query.get_mut(*entity).unwrap();
     render_pipelines.pipelines = render_pipelines
@@ -79,7 +78,6 @@ impl Plugin for ShadersPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
       .init_resource::<ShaderEvents>()
-      .init_resource::<ShaderEventReaders>()
       .add_event::<AttachShaderEvent>()
       .add_event::<DetachShaderEvent>()
       .add_system(handle_shader_events.system());

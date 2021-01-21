@@ -24,9 +24,9 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
   let body = commands
     .spawn((
       controller::BodyTag,
-      controller::CharacterController::default(),
       Transform::identity(),
       GlobalTransform::identity(),
+      Name::new("player body"),
     ))
     .current_entity()
     .unwrap();
@@ -51,6 +51,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
       )),
       ..Default::default()
     })
+    .with(Name::new("player body model"))
     .current_entity()
     .unwrap();
 
@@ -59,6 +60,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
       controller::YawTag,
       Transform::identity(),
       GlobalTransform::identity(),
+      Name::new("player yaw"),
     ))
     .current_entity()
     .unwrap();
@@ -72,6 +74,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
         Quat::from_rotation_y(0.),
         Vec3::new(0.0, 0.5 * head_scale + height - 1.695, 0.0),
       )),
+      Name::new("player head"),
     ))
     .current_entity()
     .unwrap();
@@ -86,6 +89,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
       look::LookDirection::default(),
       controller::CameraTag,
       perspective,
+      Name::new("camera 3d"),
     ))
     .current_entity()
     .unwrap();
@@ -106,6 +110,7 @@ pub fn init_hud(
 ) {
   commands
     .spawn(CameraUiBundle::default())
+    .with(Name::new("camera ui"))
     .spawn(NodeBundle {
       style: Style {
         size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
@@ -117,6 +122,7 @@ pub fn init_hud(
       material: materials.add(Color::NONE.into()),
       ..Default::default()
     })
+    .with(Name::new("crosshairs"))
     .with_children(|parent| {
       // bevy logo (image)
       parent.spawn(ImageBundle {

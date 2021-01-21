@@ -48,6 +48,7 @@ impl<'a> MeshWrapper<'a> {
   fn build_approx_collider(
     &self,
     commands: &mut Commands,
+    entity: Entity,
     mass: f32,
     debug_cube: Option<Handle<Mesh>>,
   ) -> Option<()> {
@@ -96,9 +97,8 @@ impl<'a> MeshWrapper<'a> {
       })
       .collect::<Vec<_>>();
 
-    let entity = commands.current_entity().unwrap();
     for (collider, pbr) in colliders {
-      commands.spawn((Parent(entity), collider));
+      commands.spawn((Parent(entity), collider, Name::new("collider child")));
 
       if let Some(pbr) = pbr {
         commands.with_bundle(pbr);
@@ -108,7 +108,7 @@ impl<'a> MeshWrapper<'a> {
     Some(())
   }
 
-  fn build_exact_collider(&self, commands: &mut Commands, mass: f32) -> Option<()> {
+  fn build_exact_collider(&self, commands: &mut Commands, entity: Entity, mass: f32) -> Option<()> {
     let vertices = self.vertices();
     let indices = self.indices();
 
@@ -129,7 +129,10 @@ impl<'a> MeshWrapper<'a> {
     };
 
     let density = mass / volume;
-    commands.with(ColliderBuilder::trimesh(vertices, indices).density(density));
+    commands.insert_one(
+      entity,
+      ColliderBuilder::trimesh(vertices, indices).density(density),
+    );
 
     Some(())
   }
@@ -137,13 +140,14 @@ impl<'a> MeshWrapper<'a> {
   pub fn build_collider(
     &self,
     commands: &mut Commands,
+    entity: Entity,
     body_status: BodyStatus,
     mass: f32,
     debug_cube: Option<Handle<Mesh>>,
   ) -> Option<()> {
     match body_status {
-      BodyStatus::Dynamic => self.build_approx_collider(commands, mass, debug_cube),
-      BodyStatus::Static => self.build_exact_collider(commands, mass),
+      BodyStatus::Dynamic => self.build_approx_collider(commands, entity, mass, debug_cube),
+      BodyStatus::Static => self.build_exact_collider(commands, entity, mass),
       BodyStatus::Kinematic => unimplemented!(),
     }
   }
@@ -234,20 +238,54 @@ pub struct ColliderParams {
 
 fn attach_collider(
   commands: &mut Commands,
-  query: Query<(Entity, &Handle<Mesh>, &ColliderParams, &Transform)>,
+  query: Query<(Entity, &ColliderParams, &Transform)>,
+  children_query: Query<&Children>,
+  mesh_query: Query<&Handle<Mesh>>,
   mut meshes: ResMut<Assets<Mesh>>,
 ) {
-  for (entity, mesh_handle, collider_params, transform) in query.iter() {
+  for (entity, collider_params, transform) in query.iter() {
     let _debug_cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
-    let mesh = meshes.get(mesh_handle).unwrap();
-    let (position, scale) = transform.to_na_isometry();
-
-    info!(
-      "attached to {:?} with params {:?} with pos {:?}",
-      entity, collider_params, position.translation
-    );
 
     let body_status = collider_params.body_status.to_rapier();
+    let (position, scale) = transform.to_na_isometry();
+
+    if let Ok(mesh_handle) = mesh_query.get(entity) {
+      let mesh = meshes.get(mesh_handle).unwrap();
+      MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", scale)
+        .build_collider(
+          commands,
+          entity,
+          body_status,
+          collider_params.mass,
+          None, //Some(debug_cube),
+        )
+        .unwrap();
+    } else {
+      let children = children_query.get(entity).unwrap();
+
+      // HACK: while scene is spawning, ignore this entity
+      // is there a better way to listen for this?
+      if children.len() == 0 {
+        continue;
+      }
+
+      for child in children.iter() {
+        info!("child {:?}", child);
+        if let Ok(mesh_handle) = mesh_query.get(*child) {
+          let mesh = meshes.get(mesh_handle).unwrap();
+          MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", scale)
+            .build_collider(
+              commands,
+              entity,
+              body_status,
+              collider_params.mass,
+              Some(_debug_cube.clone()),
+            )
+            .unwrap();
+        }
+      }
+    }
+
     let rigid_body = RigidBodyBuilder::new(body_status)
       .position(position)
       .entity(entity);
@@ -255,14 +293,10 @@ fn attach_collider(
     commands.set_current_entity(entity);
     commands.with(rigid_body);
 
-    MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", scale)
-      .build_collider(
-        commands,
-        body_status,
-        collider_params.mass,
-        None, //Some(debug_cube),
-      )
-      .unwrap();
+    info!(
+      "attached to {:?} with params {:?} with pos {:?}",
+      entity, collider_params, position.translation
+    );
 
     commands.remove_one::<ColliderParams>(entity);
   }
