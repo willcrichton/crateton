@@ -30,6 +30,8 @@ impl Plugin for PlayerControllerPlugin {
       .add_event::<events::ForceEvent>()
       .init_resource::<look::MouseSettings>()
       .init_resource::<controller::CharacterController>()
+      .init_resource::<raycast::ViewInfo>()
+      .add_system(raycast::compute_view_info.system())
       .add_stage_after(
         bevy::app::stage::PRE_UPDATE,
         PROCESS_INPUT_EVENTS,

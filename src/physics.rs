@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{utils, prelude::*};
 use bevy::{
   prelude::*,
   render::mesh::{Indices, VertexAttributeValues},
@@ -52,8 +52,6 @@ impl<'a> MeshWrapper<'a> {
     mass: f32,
     debug_cube: Option<Handle<Mesh>>,
   ) -> Option<()> {
-    //commands.with(ColliderBuilder::cuboid(1., 1., 1.).density(1.));
-
     let trimesh = self.to_ncollide_trimesh();
     let (decomp, _partition) =
       ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
@@ -75,13 +73,9 @@ impl<'a> MeshWrapper<'a> {
         let target_mass = mass / (num_colliders as f32);
         let density = target_mass / aabb.volume();
 
-        //let group = 0b10;
-        //let interaction_groups = InteractionGroups::new(group, u16::MAX ^ group);
         let collider = ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z)
           .translation(center.x, center.y, center.z)
           .density(density);
-        //.collision_groups(interaction_groups)
-        //.solver_groups(interaction_groups);
 
         let pbr = debug_cube.as_ref().map(|cube| PbrBundle {
           mesh: cube.clone(),
@@ -135,6 +129,18 @@ impl<'a> MeshWrapper<'a> {
     );
 
     Some(())
+  }
+
+  pub fn aabb(&self) -> AABB<f32> {
+    let vertices = self.vertices();
+    let indices = self.indices();
+    info!("{} {}", vertices.len(), indices.len());
+    let trimesh = NSTriMesh::new(
+      vertices,
+      indices.into_iter().map(|p| p.map(|n| n as usize)).collect(),
+      None,
+    );
+    trimesh.aabb().clone()
   }
 
   pub fn build_collider(
@@ -261,7 +267,7 @@ fn attach_collider(
         )
         .unwrap();
     } else {
-      let children = children_query.get(entity).unwrap();
+      let children = utils::collect_children(entity, &children_query);
 
       // HACK: while scene is spawning, ignore this entity
       // is there a better way to listen for this?
@@ -279,7 +285,7 @@ fn attach_collider(
               entity,
               body_status,
               collider_params.mass,
-              Some(_debug_cube.clone()),
+              None, //Some(_debug_cube.clone()),
             )
             .unwrap();
         }

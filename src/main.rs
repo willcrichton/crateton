@@ -9,6 +9,7 @@ mod prelude;
 mod shaders;
 mod tools;
 mod ui;
+mod utils;
 
 fn main() {
   let mut app = App::build();
@@ -17,6 +18,7 @@ fn main() {
     .add_resource(WindowDescriptor {
       cursor_locked: true,
       cursor_visible: false,
+      vsync: false,
       ..Default::default()
     })
     // Bevy core plugins

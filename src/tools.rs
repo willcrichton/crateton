@@ -2,10 +2,7 @@
 
 use crate::{
   assets::AssetRegistry,
-  player::{
-    raycast::{CastFromEyeDeps, LookDirDeps},
-    spawn::Player,
-  },
+  player::{raycast::ViewInfo, spawn::Player},
   prelude::*,
   shaders::ShaderEvents,
 };
@@ -16,13 +13,7 @@ use bevy::{
     shader::ShaderStages,
   },
 };
-use bevy_rapier3d::{
-  na::UnitQuaternion,
-  rapier::{
-    dynamics::{BodyStatus, MassProperties, RigidBodyHandle, RigidBodySet},
-    na::Vector3,
-  },
-};
+use bevy_rapier3d::{na::UnitQuaternion, rapier::{dynamics::{BodyStatus, MassProperties, RigidBodyHandle, RigidBodySet}, geometry::ColliderSet, na::Vector3}};
 
 struct ToolStateInner {
   held_body: RigidBodyHandle,
@@ -41,15 +32,17 @@ fn tool_system(
   mouse_input: Res<Input<MouseButton>>,
   player: Res<Player>,
   mut tool_state: ResMut<ToolState>,
-  mut cast_from_eye_deps: CastFromEyeDeps,
   transform_query: Query<&GlobalTransform>,
   cached_mass_properties: Query<&CachedMassProperties>,
   mut shader_events: ResMut<ShaderEvents>,
   outline_shader: Res<OutlineShader>,
+  colliders: Res<ColliderSet>,
+  mut bodies: ResMut<RigidBodySet>,
+  view_info: ResMut<ViewInfo>,
 ) {
   match tool_state.0.as_ref() {
     Some(inner) => {
-      let body = cast_from_eye_deps.bodies.get_mut(inner.held_body).unwrap();
+      let body = bodies.get_mut(inner.held_body).unwrap();
       let reset = if !mouse_input.pressed(MouseButton::Left) {
         true
       } else if mouse_input.just_pressed(MouseButton::Right) {
@@ -83,10 +76,7 @@ fn tool_system(
         return;
       }
 
-      let cast = player.cast_from_eye(&cast_from_eye_deps);
-      let bodies = &mut cast_from_eye_deps.bodies;
-      let colliders = &cast_from_eye_deps.colliders;
-      if let Some(hit) = cast {
+      if let Some(hit) = &view_info.hit {
         let body_handle = colliders.get(hit.collider_handle).unwrap().parent();
         let body = bodies.get_mut(body_handle).unwrap();
         if body.body_status == BodyStatus::Dynamic {
@@ -94,10 +84,10 @@ fn tool_system(
             body.set_mass_properties(mass_properties.0, false);
           }
 
-          //#[cfg(not(target_arch = "wasm32"))]
+          #[cfg(not(target_arch = "wasm32"))]
           shader_events.attach_shader(body.entity(), outline_shader.0.clone());
 
-          let hit_point = hit.ray.point_at(hit.intersection.toi);
+          let hit_point = view_info.ray.point_at(hit.intersection.toi);
           let player_transform = transform_query.get(player.camera).unwrap();
           let obj_transform = body.position();
 
@@ -124,8 +114,8 @@ fn move_system(
   mut tool_state: ResMut<ToolState>,
   mut bodies: ResMut<RigidBodySet>,
   player: Res<Player>,
-  look_dir_deps: LookDirDeps,
   transform_query: Query<&GlobalTransform>,
+  view_info: ResMut<ViewInfo>,
 ) {
   if let Some(inner) = tool_state.0.as_mut() {
     // Change distance from player based on mouse wheel
@@ -135,8 +125,7 @@ fn move_system(
     }
 
     let body = bodies.get_mut(inner.held_body).unwrap();
-    let look_dir = player.look_dir(&look_dir_deps);
-    let target_pos = look_dir.point_at(inner.distance).coords + inner.hit_offset;
+    let target_pos = view_info.ray.point_at(inner.distance).coords + inner.hit_offset;
     let current_pos = body.position().translation.vector;
     let force = (target_pos - current_pos) / time.delta_seconds() * FORCE_MULTIPLIER;
 

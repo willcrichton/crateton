@@ -1,12 +1,15 @@
+use bevy_rapier3d::na::{Point3, Vector3};
+use ncollide3d::bounding_volume::AABB;
+
 use crate::{
   assets::{AssetRegistry, AssetState, ASSET_STAGE},
-  physics::{AltBodyStatus, ColliderParams},
+  physics::{AltBodyStatus, ColliderParams, MeshWrapper},
+  player::raycast::ViewInfo,
+  prelude::*,
 };
 
 use std::collections::HashMap;
 use std::path::Path;
-
-use bevy::prelude::*;
 
 #[derive(Default)]
 pub struct MapAssets {
@@ -19,7 +22,6 @@ fn init_map(
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
   map_assets: Res<MapAssets>,
-  mut scenes: ResMut<Assets<Scene>>,
 ) {
   let lights = vec![LightBundle {
     transform: Transform::from_translation(Vec3::new(4.0, 5.0, 4.0)),
@@ -73,25 +75,6 @@ fn init_map(
     },
     Name::new("box"),
   ));
-
-  for model in map_assets.models.values() {
-    let scene = scenes.get_mut(model.clone()).unwrap();
-    let mut scene_commands = Commands::default();
-    for (entity, _) in scene.world.query::<(Entity, &Handle<Mesh>)>() {
-      scene_commands.insert(
-        entity,
-        (
-          // ColliderParams {
-          //   body_status: AltBodyStatus::Dynamic,
-          //   mass: 1.0,
-          // },
-          //Transform::identity(),
-          GlobalTransform::identity(),
-        ),
-      );
-    }
-    scene_commands.apply(&mut scene.world, &mut Resources::default());
-  }
 
   let monkey = map_assets.models["Monkey"].clone();
   commands
@@ -151,10 +134,54 @@ fn listen_for_spawn_models(
   commands: &mut Commands,
   mut event_reader: EventReader<SpawnModelEvent>,
   map_assets: Res<MapAssets>,
+  view_info: Res<ViewInfo>,
+  meshes: Res<Assets<Mesh>>,
+  scenes: Res<Assets<Scene>>,
 ) {
   for event in event_reader.iter() {
     let model = map_assets.models[&event.model_name].clone();
-    commands.spawn_scene(model);
+
+    let scene = scenes.get(model.clone()).unwrap();
+    let aabb = scene
+      .world
+      .query::<Entity>()
+      .filter_map(|entity| {
+        scene.world.get::<Handle<Mesh>>(entity).map(|mesh_handle| { 
+          let mesh = meshes.get(mesh_handle).unwrap();
+          MeshWrapper::new(
+            mesh,
+            "Vertex_Position",
+            "Vertex_Normal",
+            Vector3::new(1., 1., 1.)
+          )
+          .aabb()
+        }).ok()
+      })
+      .fold(
+        AABB::new(Point3::origin(), Point3::origin()),
+        |aabb1, aabb2| AABB::new(aabb1.mins.inf(&aabb2.mins), aabb1.maxs.sup(&aabb2.maxs)),
+      );
+    let half_height = aabb.half_extents().y;
+    println!("{:?}, {:?}", aabb, half_height);
+
+    let mut translation = view_info
+      .hit_point()
+      .unwrap_or_else(|| view_info.ray.point_at(half_height));
+    translation += Vector3::new(0., half_height, 0.);
+
+    commands
+      .spawn((
+        Name::new(&event.model_name),
+        Transform::from_translation(translation.coords.to_glam_vec3()),
+        GlobalTransform::default(),
+        ColliderParams {
+          body_status: AltBodyStatus::Dynamic,
+          mass: 1.0,
+        },
+      ))
+      .with_children(|parent| {
+        parent.spawn_scene(model);
+      });
   }
 }
 

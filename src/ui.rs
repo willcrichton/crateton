@@ -14,8 +14,8 @@ struct InternedTextures {
 }
 
 impl InternedTextures {
-  pub fn get_egui_id(&self, name: &str) -> u64 {
-    self.textures[name]
+  pub fn get_egui_id(&self, name: &str) -> Option<u64> {
+    self.textures.get(name).cloned()
   }
 
   pub fn add_texture(&mut self, name: String) -> u64 {
@@ -58,15 +58,17 @@ fn ui_system(
   if keyboard_input.pressed(controller.input_map.key_show_ui) {
     egui::Window::new("Spawn window").show(ctx, |ui| {
       for model_name in map_assets.thumbnails.keys() {
-        let thumbnail = ui.add(egui::widgets::ImageButton::new(
-          egui::TextureId::User(interned_textures.get_egui_id(model_name)),
-          [256.0, 256.0],
-        ));
+        if let Some(texture_id) = interned_textures.get_egui_id(model_name) {
+          let thumbnail = ui.add(egui::widgets::ImageButton::new(
+            egui::TextureId::User(texture_id),
+            [64.0, 64.0],
+          ));
 
-        if thumbnail.clicked {
-          spawn_model_events.send(SpawnModelEvent {
-            model_name: model_name.clone(),
-          })
+          if thumbnail.clicked {
+            spawn_model_events.send(SpawnModelEvent {
+              model_name: model_name.clone(),
+            })
+          }
         }
       }
     });
@@ -81,9 +83,10 @@ fn toggle_world_visualizer(
 ) {
   let window = windows.get_primary_mut().unwrap();
 
-  if keyboard_input.just_pressed(character_controller.input_map.key_toggle_world_visualizer) {
-    params.show = !params.show;
-    window.set_cursor_lock_mode(params.show);
+  let key = character_controller.input_map.key_toggle_world_visualizer;
+  params.show = keyboard_input.pressed(key);
+  if keyboard_input.just_pressed(key) || keyboard_input.just_released(key) {
+    window.set_cursor_lock_mode(!params.show);
     window.set_cursor_visibility(params.show);
     // NOTE: potential inconsistency if pressing tab and alt together
   }
