@@ -19,6 +19,17 @@ impl NalgebraVecExt for Point3<f32> {
   }
 }
 
+pub trait NalgebraQuatExt {
+  fn to_glam_quat(&self) -> Quat;
+}
+
+impl NalgebraQuatExt for UnitQuaternion<f32> {
+  fn to_glam_quat(&self) -> Quat {
+    let quat = self.into_inner().coords;
+    Quat::from_xyzw(quat.x, quat.y, quat.z, quat.w)
+  }
+}
+
 pub trait GlamVecExt {
   fn to_na_vector3(&self) -> Vector3<f32>;
   fn to_na_point3(&self) -> Point3<f32>;
@@ -46,7 +57,7 @@ pub trait GlamQuatExt {
 
 impl GlamQuatExt for Quat {
   fn to_na_quat(&self) -> Quaternion<f32> {
-    Quaternion::new(self.x, self.y, self.z, self.w)
+    Quaternion::new(self.w, self.x, self.y, self.z, )
   }
 
   fn to_na_unit_quat(&self) -> UnitQuaternion<f32> {

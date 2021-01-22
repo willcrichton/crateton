@@ -18,7 +18,6 @@ fn main() {
     .add_resource(WindowDescriptor {
       cursor_locked: true,
       cursor_visible: false,
-      vsync: false,
       ..Default::default()
     })
     // Bevy core plugins
@@ -33,6 +32,7 @@ fn main() {
     .add_plugin(ui::UiPlugin)
     // External plugins
     .add_plugin(bevy_rapier3d::physics::RapierPhysicsPlugin)
+    //.add_plugin(bevy_rapier3d::render::RapierRenderPlugin)
     .add_plugin(bevy_world_visualizer::WorldVisualizerPlugin);
 
   #[cfg(target_arch = "wasm32")]

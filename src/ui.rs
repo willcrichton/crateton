@@ -61,7 +61,7 @@ fn ui_system(
         if let Some(texture_id) = interned_textures.get_egui_id(model_name) {
           let thumbnail = ui.add(egui::widgets::ImageButton::new(
             egui::TextureId::User(texture_id),
-            [64.0, 64.0],
+            [100.0, 100.0],
           ));
 
           if thumbnail.clicked {

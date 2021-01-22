@@ -42,7 +42,7 @@ pub struct MouseSettings {
 impl Default for MouseSettings {
   fn default() -> Self {
     Self {
-      sensitivity: 0.01,
+      sensitivity: 0.005,
       yaw_pitch_roll: Vec3::zero(),
     }
   }

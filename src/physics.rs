@@ -1,4 +1,4 @@
-use crate::{utils, prelude::*};
+use crate::{prelude::*, utils};
 use bevy::{
   prelude::*,
   render::mesh::{Indices, VertexAttributeValues},
@@ -15,7 +15,6 @@ use ncollide3d::{
   bounding_volume::{HasBoundingVolume, AABB},
   procedural::{IndexBuffer, TriMesh as NTrimesh},
   shape::TriMesh as NSTriMesh,
-  utils::tetrahedron_signed_volume,
 };
 use std::borrow::Cow;
 
@@ -26,7 +25,7 @@ pub struct MeshWrapper<'a> {
   scale: Vector3<f32>,
 }
 
-const HACD_ERROR: f32 = 0.03;
+const HACD_ERROR: f32 = 0.10;
 const HACD_MIN_COMPONENTS: usize = 0;
 const HACD_EPSILON: f32 = 0.01;
 
@@ -49,15 +48,14 @@ impl<'a> MeshWrapper<'a> {
     &self,
     commands: &mut Commands,
     entity: Entity,
-    mass: f32,
     debug_cube: Option<Handle<Mesh>>,
   ) -> Option<()> {
     let trimesh = self.to_ncollide_trimesh();
     let (decomp, _partition) =
       ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
+    info!("{:?}", &self.vertices()[..10]);
     info!("after hacd {}", decomp.len());
 
-    let num_colliders = decomp.len();
     let colliders = decomp
       .into_iter()
       .map(|trimesh| {
@@ -70,12 +68,8 @@ impl<'a> MeshWrapper<'a> {
         let aabb = AABB::from_half_extents(aabb.center(), half_extents);
         let center = aabb.center();
 
-        let target_mass = mass / (num_colliders as f32);
-        let density = target_mass / aabb.volume();
-
         let collider = ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z)
-          .translation(center.x, center.y, center.z)
-          .density(density);
+          .translation(center.x, center.y, center.z);
 
         let pbr = debug_cube.as_ref().map(|cube| PbrBundle {
           mesh: cube.clone(),
@@ -102,31 +96,10 @@ impl<'a> MeshWrapper<'a> {
     Some(())
   }
 
-  fn build_exact_collider(&self, commands: &mut Commands, entity: Entity, mass: f32) -> Option<()> {
+  fn build_exact_collider(&self, commands: &mut Commands, entity: Entity) -> Option<()> {
     let vertices = self.vertices();
     let indices = self.indices();
-
-    // https://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
-    let volume = {
-      indices
-        .iter()
-        .map(|idx| {
-          tetrahedron_signed_volume(
-            &vertices[idx.x as usize],
-            &vertices[idx.y as usize],
-            &vertices[idx.z as usize],
-            &Point3::from(Vector3::zeros()),
-          )
-        })
-        .sum::<f32>()
-        .abs()
-    };
-
-    let density = mass / volume;
-    commands.insert_one(
-      entity,
-      ColliderBuilder::trimesh(vertices, indices).density(density),
-    );
+    commands.insert_one(entity, ColliderBuilder::trimesh(vertices, indices));
 
     Some(())
   }
@@ -134,7 +107,6 @@ impl<'a> MeshWrapper<'a> {
   pub fn aabb(&self) -> AABB<f32> {
     let vertices = self.vertices();
     let indices = self.indices();
-    info!("{} {}", vertices.len(), indices.len());
     let trimesh = NSTriMesh::new(
       vertices,
       indices.into_iter().map(|p| p.map(|n| n as usize)).collect(),
@@ -148,12 +120,11 @@ impl<'a> MeshWrapper<'a> {
     commands: &mut Commands,
     entity: Entity,
     body_status: BodyStatus,
-    mass: f32,
     debug_cube: Option<Handle<Mesh>>,
   ) -> Option<()> {
     match body_status {
-      BodyStatus::Dynamic => self.build_approx_collider(commands, entity, mass, debug_cube),
-      BodyStatus::Static => self.build_exact_collider(commands, entity, mass),
+      BodyStatus::Dynamic => self.build_approx_collider(commands, entity, debug_cube),
+      BodyStatus::Static => self.build_exact_collider(commands, entity),
       BodyStatus::Kinematic => unimplemented!(),
     }
   }
@@ -244,16 +215,18 @@ pub struct ColliderParams {
 
 fn attach_collider(
   commands: &mut Commands,
-  query: Query<(Entity, &ColliderParams, &Transform)>,
+  mut query: Query<(Entity, &ColliderParams)>,
   children_query: Query<&Children>,
   mesh_query: Query<&Handle<Mesh>>,
+  mut transform_query: Query<&mut Transform>,
   mut meshes: ResMut<Assets<Mesh>>,
 ) {
-  for (entity, collider_params, transform) in query.iter() {
+  for (entity, collider_params) in query.iter_mut() {
     let _debug_cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
 
     let body_status = collider_params.body_status.to_rapier();
-    let (position, scale) = transform.to_na_isometry();
+    let (position, scale) = transform_query.get_mut(entity).unwrap().to_na_isometry();
+    info!("rot: na{:?} glam{:?}", position.rotation, transform_query.get_mut(entity).unwrap().rotation);
 
     if let Ok(mesh_handle) = mesh_query.get(entity) {
       let mesh = meshes.get(mesh_handle).unwrap();
@@ -262,7 +235,6 @@ fn attach_collider(
           commands,
           entity,
           body_status,
-          collider_params.mass,
           None, //Some(debug_cube),
         )
         .unwrap();
@@ -275,26 +247,33 @@ fn attach_collider(
         continue;
       }
 
+      transform_query.get_mut(entity).unwrap().scale = Vec3::new(1., 1., 1.);
+
       for child in children.iter() {
         info!("child {:?}", child);
         if let Ok(mesh_handle) = mesh_query.get(*child) {
           let mesh = meshes.get(mesh_handle).unwrap();
+          transform_query.get_mut(*child).unwrap().scale = scale.to_glam_vec3();
           MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", scale)
             .build_collider(
               commands,
               entity,
               body_status,
-              collider_params.mass,
               None, //Some(_debug_cube.clone()),
             )
             .unwrap();
+        } else {
+          if let Ok(mut transform) = transform_query.get_mut(*child) {
+            transform.scale = Vec3::new(1., 1., 1.);
+          }
         }
       }
     }
 
     let rigid_body = RigidBodyBuilder::new(body_status)
       .position(position)
-      .entity(entity);
+      .entity(entity)
+      .mass(collider_params.mass, false);
 
     commands.set_current_entity(entity);
     commands.with(rigid_body);

@@ -19,7 +19,9 @@ debug = true
 opt-level = 3
 
 [profile.dev]
-opt-level = 1
+opt-level = 2
+debug = true
+debug-assertions = true
 
 [dependencies]
 bevy = {version = "0.4.0", default-features = false}
@@ -30,6 +32,9 @@ bevy_webgl2 = {version = "0.4.0", optional = true}
 bevy_egui = "0.1.2"
 bevy-inspector-egui = "0.1.1"
 bevy_world_visualizer = {path = "../bevy_world_visualizer"}
+serde = {version = "1", features=["derive"]}
+serde_json = "1"
+anyhow = "1.0"
 
 # crateton_core = { path = "crates/crateton_core" }
 # crateton_scripts = { path = "crates/crateton_scripts" }

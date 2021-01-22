@@ -13,7 +13,7 @@ jobs:
           toolchain: stable
           override: true
           target: wasm32-unknown-unknown
-      - run: git clone https://github.com/bevyengine/bevy ../bevy && pushd ../bevy && git checkout 6a0116e994cb7d9d105cb0897f542701d955db88 && popd && git clone https://github.com/willcrichton/winit/ ../winit && git clone https://github.com/willcrichton/bevy_egui/ ../bevy_egui
+      - run: git clone https://github.com/bevyengine/bevy ../bevy && pushd ../bevy && git checkout 6a0116e994cb7d9d105cb0897f542701d955db88 && popd && git clone https://github.com/willcrichton/winit/ ../winit && git clone https://github.com/willcrichton/bevy_egui/ ../bevy_egui && git clone https://github.com/willcrichton/bevy-inspector-egui/ ../bevy-inspector-egui
       - run: cargo install cargo-make
       - run: cargo make build-web --profile release
       - run: cp -r assets wasm

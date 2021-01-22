@@ -104,7 +104,7 @@ fn tool_system(
   }
 }
 
-const FORCE_MULTIPLIER: f32 = 20.;
+const FORCE_MULTIPLIER: f32 = 5.;
 const MOUSE_WHEEL_MULTIPLIER: f32 = 3.;
 const DISTANCE_MIN: f32 = 3.;
 
@@ -127,7 +127,7 @@ fn move_system(
     let body = bodies.get_mut(inner.held_body).unwrap();
     let target_pos = view_info.ray.point_at(inner.distance).coords + inner.hit_offset;
     let current_pos = body.position().translation.vector;
-    let force = (target_pos - current_pos) / time.delta_seconds() * FORCE_MULTIPLIER;
+    let force = (target_pos - current_pos) / time.delta_seconds() * body.mass() * FORCE_MULTIPLIER;
 
     let player_transform = transform_query.get(player.camera).unwrap();
     let player_rotation = player_transform.rotation.to_na_unit_quat();
@@ -137,7 +137,7 @@ fn move_system(
 
     let current_rotation = body.position().rotation;
     let rotation_delta = current_rotation.rotation_to(&desired_rotation);
-    let torque = rotation_delta.scaled_axis() / time.delta_seconds() * FORCE_MULTIPLIER;
+    let torque = rotation_delta.scaled_axis() / time.delta_seconds() * body.mass() * FORCE_MULTIPLIER;
 
     body.set_linvel(Vector3::zeros(), true);
     body.set_angvel(Vector3::zeros(), true);

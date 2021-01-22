@@ -1,5 +1,4 @@
 use bevy::{
-  ecs::SystemParam,
   prelude::*,
   render::pipeline::{PipelineDescriptor, PipelineSpecialization, RenderPipeline},
 };
@@ -20,12 +19,6 @@ pub struct ShaderEvents {
   detach: Events<DetachShaderEvent>,
 }
 
-#[derive(SystemParam)]
-pub struct ShaderEventReaders<'a> {
-  attach: EventReader<'a, AttachShaderEvent>,
-  detach: EventReader<'a, DetachShaderEvent>,
-}
-
 impl ShaderEvents {
   pub fn attach_shader(&mut self, entity: Entity, pipeline: Handle<PipelineDescriptor>) {
     self.attach.send(AttachShaderEvent { entity, pipeline });
@@ -37,12 +30,13 @@ impl ShaderEvents {
 }
 
 fn handle_shader_events(
-  mut readers: ShaderEventReaders,
+  mut attach_events: EventReader<AttachShaderEvent>,
+  mut detach_events: EventReader<DetachShaderEvent>,
   mut render_pipelines_query: Query<&mut RenderPipelines>,
   mesh_query: Query<&Handle<Mesh>>,
   meshes: Res<Assets<Mesh>>,
 ) {
-  for AttachShaderEvent { entity, pipeline } in readers.attach.iter() {
+  for AttachShaderEvent { entity, pipeline } in attach_events.iter() {
     // Get the entity's mesh so we can specialize the shader to its attributes
     let specialization = {
       let mesh_handle = mesh_query.get(*entity).unwrap();
@@ -61,7 +55,7 @@ fn handle_shader_events(
     ));
   }
 
-  for DetachShaderEvent { entity, pipeline } in readers.detach.iter() {
+  for DetachShaderEvent { entity, pipeline } in detach_events.iter() {
     // Remove shader from the set of render pipelines
     let mut render_pipelines = render_pipelines_query.get_mut(*entity).unwrap();
     render_pipelines.pipelines = render_pipelines
