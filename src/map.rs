@@ -65,7 +65,12 @@ impl Model {
       .unwrap_or_else(|| ModelParams::default())
   }
 
-  pub fn aabb(&self, scenes: &Assets<Scene>, meshes: &Assets<Mesh>, json_assets: &Assets<JsonData>) -> AABB<f32> {
+  pub fn aabb(
+    &self,
+    scenes: &Assets<Scene>,
+    meshes: &Assets<Mesh>,
+    json_assets: &Assets<JsonData>,
+  ) -> AABB<f32> {
     let params = self.params(json_assets);
     let scene = scenes.get(self.scene().clone()).unwrap();
     scene
@@ -81,7 +86,10 @@ impl Model {
               mesh,
               "Vertex_Position",
               "Vertex_Normal",
-              params.scale.unwrap_or_else(|| Vec3::new(1., 1., 1.)).to_na_vector3()
+              params
+                .scale
+                .unwrap_or_else(|| Vec3::new(1., 1., 1.))
+                .to_na_vector3(),
             )
             .aabb()
           })
@@ -253,20 +261,18 @@ fn listen_for_spawn_models(
 
     let aabb = model.aabb(&scenes, &meshes, &json_assets);
     let half_height = aabb.half_extents().y;
-    println!("{:?}, {:?}", aabb, half_height);
 
     let mut translation = view_info
       .hit_point()
       .unwrap_or_else(|| view_info.ray.point_at(half_height));
-    translation += Vector3::new(0., half_height + 2., 0.);
+    translation += Vector3::new(0., half_height, 0.);
 
     model.spawn(
       commands,
       &json_assets,
       Isometry3::from_parts(
         Translation3::from(translation.coords),
-        UnitQuaternion::from_euler_angles(0., 0., 0.)
-        //UnitQuaternion::identity(),
+        UnitQuaternion::identity(),
       ),
     );
     commands.with(Name::new(&event.model_name));

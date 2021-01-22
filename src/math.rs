@@ -57,7 +57,7 @@ pub trait GlamQuatExt {
 
 impl GlamQuatExt for Quat {
   fn to_na_quat(&self) -> Quaternion<f32> {
-    Quaternion::new(self.w, self.x, self.y, self.z, )
+    Quaternion::new(self.w, self.x, self.y, self.z)
   }
 
   fn to_na_unit_quat(&self) -> UnitQuaternion<f32> {

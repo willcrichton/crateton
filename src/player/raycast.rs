@@ -3,7 +3,7 @@ use super::{
   spawn::{Player, RAPIER_PLAYER_GROUP},
 };
 use crate::prelude::*;
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_rapier3d::{
   na::{Point3, Vector3},
   rapier::{
@@ -35,7 +35,10 @@ impl Default for ViewInfo {
 
 impl ViewInfo {
   pub fn hit_point(&self) -> Option<Point3<f32>> {
-    self.hit.as_ref().map(|hit| self.ray.point_at(hit.intersection.toi))
+    self
+      .hit
+      .as_ref()
+      .map(|hit| self.ray.point_at(hit.intersection.toi))
   }
 }
 

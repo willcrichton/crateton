@@ -213,6 +213,8 @@ pub struct ColliderParams {
   pub mass: f32,
 }
 
+pub struct ColliderChildren(pub Vec<Entity>);
+
 fn attach_collider(
   commands: &mut Commands,
   mut query: Query<(Entity, &ColliderParams)>,
@@ -226,7 +228,11 @@ fn attach_collider(
 
     let body_status = collider_params.body_status.to_rapier();
     let (position, scale) = transform_query.get_mut(entity).unwrap().to_na_isometry();
-    info!("rot: na{:?} glam{:?}", position.rotation, transform_query.get_mut(entity).unwrap().rotation);
+    info!(
+      "rot: na{:?} glam{:?}",
+      position.rotation,
+      transform_query.get_mut(entity).unwrap().rotation
+    );
 
     if let Ok(mesh_handle) = mesh_query.get(entity) {
       let mesh = meshes.get(mesh_handle).unwrap();
@@ -268,6 +274,8 @@ fn attach_collider(
           }
         }
       }
+
+      commands.insert_one(entity, ColliderChildren(children));
     }
 
     let rigid_body = RigidBodyBuilder::new(body_status)

@@ -3,30 +3,16 @@ use bevy::{
   render::pipeline::{PipelineDescriptor, PipelineSpecialization, RenderPipeline},
 };
 
-struct AttachShaderEvent {
-  entity: Entity,
-  pipeline: Handle<PipelineDescriptor>,
+use crate::physics::ColliderChildren;
+
+pub struct AttachShaderEvent {
+  pub entity: Entity,
+  pub pipeline: Handle<PipelineDescriptor>,
 }
 
-struct DetachShaderEvent {
-  entity: Entity,
-  pipeline: Handle<PipelineDescriptor>,
-}
-
-#[derive(Default)]
-pub struct ShaderEvents {
-  attach: Events<AttachShaderEvent>,
-  detach: Events<DetachShaderEvent>,
-}
-
-impl ShaderEvents {
-  pub fn attach_shader(&mut self, entity: Entity, pipeline: Handle<PipelineDescriptor>) {
-    self.attach.send(AttachShaderEvent { entity, pipeline });
-  }
-
-  pub fn detach_shader(&mut self, entity: Entity, pipeline: Handle<PipelineDescriptor>) {
-    self.detach.send(DetachShaderEvent { entity, pipeline });
-  }
+pub struct DetachShaderEvent {
+  pub entity: Entity,
+  pub pipeline: Handle<PipelineDescriptor>,
 }
 
 fn handle_shader_events(
@@ -34,36 +20,60 @@ fn handle_shader_events(
   mut detach_events: EventReader<DetachShaderEvent>,
   mut render_pipelines_query: Query<&mut RenderPipelines>,
   mesh_query: Query<&Handle<Mesh>>,
+  children_query: Query<&ColliderChildren>,
   meshes: Res<Assets<Mesh>>,
 ) {
   for AttachShaderEvent { entity, pipeline } in attach_events.iter() {
-    // Get the entity's mesh so we can specialize the shader to its attributes
-    let specialization = {
-      let mesh_handle = mesh_query.get(*entity).unwrap();
-      let mesh = meshes.get(mesh_handle).unwrap();
-      PipelineSpecialization {
-        vertex_buffer_descriptor: mesh.get_vertex_buffer_descriptor(),
-        ..Default::default()
-      }
+    let mut attach = |entity: Entity| {
+      let specialization = {
+        let mesh_handle = mesh_query.get(entity).unwrap();
+        let mesh = meshes.get(mesh_handle).unwrap();
+        PipelineSpecialization {
+          vertex_buffer_descriptor: mesh.get_vertex_buffer_descriptor(),
+          ..Default::default()
+        }
+      };
+
+      // Add the shader to the set of render pipelines
+      let mut render_pipelines = render_pipelines_query.get_mut(entity).unwrap();
+      render_pipelines.pipelines.push(RenderPipeline::specialized(
+        pipeline.clone(),
+        specialization,
+      ));
     };
 
-    // Add the shader to the set of render pipelines
-    let mut render_pipelines = render_pipelines_query.get_mut(*entity).unwrap();
-    render_pipelines.pipelines.push(RenderPipeline::specialized(
-      pipeline.clone(),
-      specialization,
-    ));
+    if mesh_query.get(*entity).is_ok() {
+      attach(*entity);
+    } else {
+      for child in children_query.get(*entity).unwrap().0.iter() {
+        if mesh_query.get(*child).is_ok() {
+          attach(*child);
+        }
+      }
+    }
   }
 
   for DetachShaderEvent { entity, pipeline } in detach_events.iter() {
     // Remove shader from the set of render pipelines
-    let mut render_pipelines = render_pipelines_query.get_mut(*entity).unwrap();
-    render_pipelines.pipelines = render_pipelines
-      .pipelines
-      .clone()
-      .into_iter()
-      .filter(|p| p.pipeline != *pipeline)
-      .collect();
+    let mut detach = |entity: Entity| {
+      let mut render_pipelines = render_pipelines_query.get_mut(entity).unwrap();
+      render_pipelines.pipelines = render_pipelines
+        .pipelines
+        .clone()
+        .into_iter()
+        .filter(|p| p.pipeline != *pipeline)
+        .collect();
+    };
+    
+    if mesh_query.get(*entity).is_ok() {
+      detach(*entity);
+    } else {
+      for child in children_query.get(*entity).unwrap().0.iter() {
+        if mesh_query.get(*child).is_ok() {
+          detach(*child);
+        }
+      }
+    }
   }
 }
 
@@ -71,7 +81,6 @@ pub struct ShadersPlugin;
 impl Plugin for ShadersPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
-      .init_resource::<ShaderEvents>()
       .add_event::<AttachShaderEvent>()
       .add_event::<DetachShaderEvent>()
       .add_system(handle_shader_events.system());

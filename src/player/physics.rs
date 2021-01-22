@@ -65,9 +65,10 @@ pub fn controller_to_rapier_dynamic_force(
 pub fn controller_to_fly(
   mut reader: ControllerEvents,
   mut bodies: ResMut<RigidBodySet>,
-  mut query: Query<(&RigidBodyHandleComponent, &CharacterController), With<BodyTag>>,
+  mut query: Query<&RigidBodyHandleComponent, With<BodyTag>>,
+  controller: Res<CharacterController>,
 ) {
-  for (body_handle, controller) in query.iter_mut() {
+  for body_handle in query.iter_mut() {
     if controller.fly {
       let body = bodies
         .get_mut(body_handle.handle())

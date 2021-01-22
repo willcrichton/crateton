@@ -4,7 +4,7 @@ use crate::{
   assets::AssetRegistry,
   player::{raycast::ViewInfo, spawn::Player},
   prelude::*,
-  shaders::ShaderEvents,
+  shaders::{DetachShaderEvent, AttachShaderEvent},
 };
 use bevy::{
   input::mouse::MouseWheel,
@@ -13,7 +13,14 @@ use bevy::{
     shader::ShaderStages,
   },
 };
-use bevy_rapier3d::{na::UnitQuaternion, rapier::{dynamics::{BodyStatus, MassProperties, RigidBodyHandle, RigidBodySet}, geometry::ColliderSet, na::Vector3}};
+use bevy_rapier3d::{
+  na::UnitQuaternion,
+  rapier::{
+    dynamics::{BodyStatus, MassProperties, RigidBodyHandle, RigidBodySet},
+    geometry::ColliderSet,
+    na::Vector3,
+  },
+};
 
 struct ToolStateInner {
   held_body: RigidBodyHandle,
@@ -34,7 +41,8 @@ fn tool_system(
   mut tool_state: ResMut<ToolState>,
   transform_query: Query<&GlobalTransform>,
   cached_mass_properties: Query<&CachedMassProperties>,
-  mut shader_events: ResMut<ShaderEvents>,
+  mut attach_shader: ResMut<Events<AttachShaderEvent>>,
+  mut detach_shader: ResMut<Events<DetachShaderEvent>>,
   outline_shader: Res<OutlineShader>,
   colliders: Res<ColliderSet>,
   mut bodies: ResMut<RigidBodySet>,
@@ -66,7 +74,7 @@ fn tool_system(
 
       if reset {
         #[cfg(not(target_arch = "wasm32"))]
-        shader_events.detach_shader(body.entity(), outline_shader.0.clone());
+        detach_shader.send(DetachShaderEvent { entity: body.entity(), pipeline: outline_shader.0.clone() });
         tool_state.0 = None;
       }
     }
@@ -85,7 +93,7 @@ fn tool_system(
           }
 
           #[cfg(not(target_arch = "wasm32"))]
-          shader_events.attach_shader(body.entity(), outline_shader.0.clone());
+          attach_shader.send(AttachShaderEvent { entity: body.entity(), pipeline: outline_shader.0.clone() });
 
           let hit_point = view_info.ray.point_at(hit.intersection.toi);
           let player_transform = transform_query.get(player.camera).unwrap();
@@ -137,7 +145,8 @@ fn move_system(
 
     let current_rotation = body.position().rotation;
     let rotation_delta = current_rotation.rotation_to(&desired_rotation);
-    let torque = rotation_delta.scaled_axis() / time.delta_seconds() * body.mass() * FORCE_MULTIPLIER;
+    let torque =
+      rotation_delta.scaled_axis() / time.delta_seconds() * body.mass() * FORCE_MULTIPLIER;
 
     body.set_linvel(Vector3::zeros(), true);
     body.set_angvel(Vector3::zeros(), true);
