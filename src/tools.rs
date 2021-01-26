@@ -4,7 +4,7 @@ use crate::{
   assets::AssetRegistry,
   player::{raycast::ViewInfo, spawn::Player},
   prelude::*,
-  shaders::{DetachShaderEvent, AttachShaderEvent},
+  shaders::{AttachShaderEvent, DetachShaderEvent},
 };
 use bevy::{
   input::mouse::MouseWheel,
@@ -74,7 +74,10 @@ fn tool_system(
 
       if reset {
         #[cfg(not(target_arch = "wasm32"))]
-        detach_shader.send(DetachShaderEvent { entity: body.entity(), pipeline: outline_shader.0.clone() });
+        detach_shader.send(DetachShaderEvent {
+          entity: body.entity(),
+          pipeline: outline_shader.0.clone(),
+        });
         tool_state.0 = None;
       }
     }
@@ -93,7 +96,10 @@ fn tool_system(
           }
 
           #[cfg(not(target_arch = "wasm32"))]
-          attach_shader.send(AttachShaderEvent { entity: body.entity(), pipeline: outline_shader.0.clone() });
+          attach_shader.send(AttachShaderEvent {
+            entity: body.entity(),
+            pipeline: outline_shader.0.clone(),
+          });
 
           let hit_point = view_info.ray.point_at(hit.intersection.toi);
           let player_transform = transform_query.get(player.camera).unwrap();

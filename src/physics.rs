@@ -1,12 +1,17 @@
-use crate::{prelude::*, utils};
+use crate::{
+  models::{MeshDecomposition, ModelInstance, SceneDecomposition},
+  prelude::*,
+  utils,
+};
 use bevy::{
   prelude::*,
   render::mesh::{Indices, VertexAttributeValues},
+  scene::LatestInstance,
 };
 use bevy_rapier3d::{
   na::{Matrix3x1, Point3, Vector3},
   rapier::{
-    dynamics::{BodyStatus, RigidBody, RigidBodyBuilder},
+    dynamics::{BodyStatus, IntegrationParameters, RigidBody, RigidBodyBuilder},
     geometry::ColliderBuilder,
     math::Point,
   },
@@ -16,6 +21,7 @@ use ncollide3d::{
   procedural::{IndexBuffer, TriMesh as NTrimesh},
   shape::TriMesh as NSTriMesh,
 };
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
 pub struct MeshWrapper<'a> {
@@ -44,19 +50,27 @@ impl<'a> MeshWrapper<'a> {
     }
   }
 
+  pub fn compute_decomposition(&self, decomp: Option<&MeshDecomposition>) -> Vec<NTrimesh<f32>> {
+    decomp
+      .map(|decomp| decomp.to_trimesh(&self.scale))
+      .unwrap_or_else(|| {
+        let trimesh = self.to_ncollide_trimesh();
+        let (decomp, _partition) =
+          ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
+
+        decomp
+      })
+  }
+
   fn build_approx_collider(
     &self,
     commands: &mut Commands,
     entity: Entity,
     debug_cube: Option<Handle<Mesh>>,
+    decomp: Option<&MeshDecomposition>,
   ) -> Option<()> {
-    let trimesh = self.to_ncollide_trimesh();
-    let (decomp, _partition) =
-      ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
-    info!("{:?}", &self.vertices()[..10]);
-    info!("after hacd {}", decomp.len());
-
-    let colliders = decomp
+    let colliders = self
+      .compute_decomposition(decomp)
       .into_iter()
       .map(|trimesh| {
         // Get AABB from trimesh
@@ -121,9 +135,10 @@ impl<'a> MeshWrapper<'a> {
     entity: Entity,
     body_status: BodyStatus,
     debug_cube: Option<Handle<Mesh>>,
+    decomp: Option<&MeshDecomposition>,
   ) -> Option<()> {
     match body_status {
-      BodyStatus::Dynamic => self.build_approx_collider(commands, entity, debug_cube),
+      BodyStatus::Dynamic => self.build_approx_collider(commands, entity, debug_cube, decomp),
       BodyStatus::Static => self.build_exact_collider(commands, entity),
       BodyStatus::Kinematic => unimplemented!(),
     }
@@ -180,36 +195,9 @@ impl<'a> MeshWrapper<'a> {
   }
 }
 
-// Sad hack because rapier types don't implement Reflect
-#[allow(dead_code)]
-#[derive(Reflect, Copy, Clone, PartialEq, Debug)]
-#[reflect_value(PartialEq)]
-pub enum AltBodyStatus {
-  Static,
-  Dynamic,
-  Kinematic,
-}
-
-impl Default for AltBodyStatus {
-  fn default() -> Self {
-    AltBodyStatus::Dynamic
-  }
-}
-
-impl AltBodyStatus {
-  pub fn to_rapier(&self) -> BodyStatus {
-    match self {
-      AltBodyStatus::Static => BodyStatus::Static,
-      AltBodyStatus::Dynamic => BodyStatus::Dynamic,
-      AltBodyStatus::Kinematic => BodyStatus::Kinematic,
-    }
-  }
-}
-
-#[derive(Debug, Reflect, Default)]
-#[reflect(Component)]
+#[derive(Debug)]
 pub struct ColliderParams {
-  pub body_status: AltBodyStatus,
+  pub body_status: BodyStatus,
   pub mass: f32,
 }
 
@@ -217,22 +205,20 @@ pub struct ColliderChildren(pub Vec<Entity>);
 
 fn attach_collider(
   commands: &mut Commands,
-  mut query: Query<(Entity, &ColliderParams)>,
+  mut query: Query<(Entity, Option<&ModelInstance>, &ColliderParams)>,
   children_query: Query<&Children>,
   mesh_query: Query<&Handle<Mesh>>,
+  decomp_query: Query<&SceneDecomposition>,
+  instance_query: Query<&LatestInstance>,
   mut transform_query: Query<&mut Transform>,
   mut meshes: ResMut<Assets<Mesh>>,
+  scene_spawner: Res<SceneSpawner>,
 ) {
-  for (entity, collider_params) in query.iter_mut() {
+  for (entity, model_instance, collider_params) in query.iter_mut() {
     let _debug_cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
 
-    let body_status = collider_params.body_status.to_rapier();
+    let body_status = collider_params.body_status;
     let (position, scale) = transform_query.get_mut(entity).unwrap().to_na_isometry();
-    info!(
-      "rot: na{:?} glam{:?}",
-      position.rotation,
-      transform_query.get_mut(entity).unwrap().rotation
-    );
 
     if let Ok(mesh_handle) = mesh_query.get(entity) {
       let mesh = meshes.get(mesh_handle).unwrap();
@@ -242,6 +228,7 @@ fn attach_collider(
           entity,
           body_status,
           None, //Some(debug_cube),
+          None,
         )
         .unwrap();
     } else {
@@ -253,10 +240,14 @@ fn attach_collider(
         continue;
       }
 
+      let model = &model_instance.unwrap().0;
+      let decomp = decomp_query.get(*model).ok();
+      let instance = &instance_query.get(entity).unwrap().0;
+      let entity_map = scene_spawner.entity_map(instance.clone()).unwrap();
+
       transform_query.get_mut(entity).unwrap().scale = Vec3::new(1., 1., 1.);
 
       for child in children.iter() {
-        info!("child {:?}", child);
         if let Ok(mesh_handle) = mesh_query.get(*child) {
           let mesh = meshes.get(mesh_handle).unwrap();
           transform_query.get_mut(*child).unwrap().scale = scale.to_glam_vec3();
@@ -266,6 +257,13 @@ fn attach_collider(
               entity,
               body_status,
               None, //Some(_debug_cube.clone()),
+              decomp.map(|decomp| {
+                let inst_entity = entity_map
+                  .keys()
+                  .find(|k| entity_map.get(*k).unwrap() == *child)
+                  .unwrap();
+                decomp.meshes.get(&inst_entity).unwrap()
+              }),
             )
             .unwrap();
         } else {
@@ -286,21 +284,7 @@ fn attach_collider(
     commands.set_current_entity(entity);
     commands.with(rigid_body);
 
-    info!(
-      "attached to {:?} with params {:?} with pos {:?}",
-      entity, collider_params, position.translation
-    );
-
     commands.remove_one::<ColliderParams>(entity);
-  }
-}
-
-pub struct PhysicsPlugin;
-impl Plugin for PhysicsPlugin {
-  fn build(&self, app: &mut AppBuilder) {
-    app.add_system(attach_collider.system());
-    //app.add_startup_system(init_physics.system());
-    //app.add_system(player_system.system());
   }
 }
 
@@ -332,5 +316,21 @@ impl AABBExt for AABB<f32> {
   fn volume(&self) -> f32 {
     let half_extents = self.half_extents();
     half_extents.x * half_extents.y * half_extents.z * 8.0
+  }
+}
+
+fn configure_rapier(mut integration_params: ResMut<IntegrationParameters>) {
+  integration_params.ccd_on_penetration_enabled = true;
+  integration_params.max_velocity_iterations *= 2;
+  integration_params.max_position_iterations *= 2;
+}
+
+pub struct PhysicsPlugin;
+impl Plugin for PhysicsPlugin {
+  fn build(&self, app: &mut AppBuilder) {
+    app
+      .add_plugin(bevy_rapier3d::physics::RapierPhysicsPlugin)
+      .add_system(attach_collider.system())
+      .add_startup_system(configure_rapier.system());
   }
 }

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::na::{
   Isometry3, Point3, Quaternion, Translation3, Unit, UnitQuaternion, Vector3,
 };
+use std::fmt::Debug;
 
 pub trait NalgebraVecExt {
   fn to_glam_vec3(&self) -> Vec3;
@@ -30,13 +31,13 @@ impl NalgebraQuatExt for UnitQuaternion<f32> {
   }
 }
 
-pub trait GlamVecExt {
-  fn to_na_vector3(&self) -> Vector3<f32>;
-  fn to_na_point3(&self) -> Point3<f32>;
-  fn to_na_translation(&self) -> Translation3<f32>;
+pub trait GlamVecExt<T: Copy + PartialEq + Debug + 'static> {
+  fn to_na_vector3(&self) -> Vector3<T>;
+  fn to_na_point3(&self) -> Point3<T>;
+  fn to_na_translation(&self) -> Translation3<T>;
 }
 
-impl GlamVecExt for Vec3 {
+impl GlamVecExt<f32> for Vec3 {
   fn to_na_vector3(&self) -> Vector3<f32> {
     Vector3::new(self.x, self.y, self.z)
   }
@@ -46,6 +47,20 @@ impl GlamVecExt for Vec3 {
   }
 
   fn to_na_translation(&self) -> Translation3<f32> {
+    Translation3::new(self.x, self.y, self.z)
+  }
+}
+
+impl GlamVecExt<u32> for UVec3 {
+  fn to_na_vector3(&self) -> Vector3<u32> {
+    Vector3::new(self.x, self.y, self.z)
+  }
+
+  fn to_na_point3(&self) -> Point3<u32> {
+    Point3::new(self.x, self.y, self.z)
+  }
+
+  fn to_na_translation(&self) -> Translation3<u32> {
     Translation3::new(self.x, self.y, self.z)
   }
 }

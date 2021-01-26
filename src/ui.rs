@@ -1,10 +1,11 @@
 use crate::{
   assets::{AssetState, ASSET_STAGE},
-  map::{MapAssets, SpawnModelEvent},
-  player::controller::CharacterController,
+  models::{ModelInfo, ModelParams, SceneDecomposition, SpawnModelEvent, Thumbnail},
+  player::{controller::CharacterController, raycast::ViewInfo},
   prelude::*,
 };
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_rapier3d::na::{Isometry3, Translation3, UnitQuaternion, Vector3};
 use bevy_world_visualizer::WorldVisualizerParams;
 use std::collections::HashMap;
 
@@ -23,16 +24,20 @@ impl InternedTextures {
     self.textures.insert(name, n);
     n
   }
+
+  pub fn null_texture(&self) -> u64 {
+    u64::MAX
+  }
 }
 
 fn load_assets(
   mut egui_context: ResMut<EguiContext>,
-  map_assets: Res<MapAssets>,
   mut interned_textures: ResMut<InternedTextures>,
+  query: Query<(&ModelInfo, &Thumbnail), Changed<Thumbnail>>,
 ) {
-  for (path, thumbnail) in &map_assets.thumbnails {
-    let id = interned_textures.add_texture(path.clone());
-    egui_context.set_egui_texture(id, thumbnail.as_weak());
+  for (model_info, thumbnail) in query.iter() {
+    let id = interned_textures.add_texture(model_info.name.clone());
+    egui_context.set_egui_texture(id, thumbnail.0.as_weak());
   }
 }
 
@@ -41,9 +46,10 @@ fn ui_system(
   keyboard_input: Res<Input<KeyCode>>,
   mut windows: ResMut<Windows>,
   mut egui_context: ResMut<EguiContext>,
-  map_assets: Res<MapAssets>,
   interned_textures: Res<InternedTextures>,
   mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
+  model_query: Query<(Entity, &ModelInfo, &SceneDecomposition, &ModelParams)>,
+  view_info: Res<ViewInfo>,
 ) {
   let ctx = &mut egui_context.ctx;
   let window = windows.get_primary_mut().unwrap();
@@ -57,18 +63,30 @@ fn ui_system(
 
   if keyboard_input.pressed(controller.input_map.key_show_ui) {
     egui::Window::new("Spawn window").show(ctx, |ui| {
-      for model_name in map_assets.thumbnails.keys() {
-        if let Some(texture_id) = interned_textures.get_egui_id(model_name) {
-          let thumbnail = ui.add(egui::widgets::ImageButton::new(
-            egui::TextureId::User(texture_id),
-            [100.0, 100.0],
-          ));
+      for (model, model_info, decomp, model_params) in model_query.iter() {
+        let texture_id = if let Some(texture_id) = interned_textures.get_egui_id(&model_info.name) {
+          texture_id
+        } else {
+          interned_textures.null_texture()
+        };
 
-          if thumbnail.clicked {
-            spawn_model_events.send(SpawnModelEvent {
-              model_name: model_name.clone(),
-            })
-          }
+        let thumbnail = ui.add(egui::widgets::ImageButton::new(
+          egui::TextureId::User(texture_id),
+          [100.0, 100.0],
+        ));
+
+        if thumbnail.clicked {
+          let aabb = decomp.aabb(&model_params.scale.to_na_vector3());
+          let half_height = aabb.half_extents().y;
+          let mut translation = view_info
+            .hit_point()
+            .unwrap_or_else(|| view_info.ray.point_at(half_height));
+          translation += Vector3::new(0., half_height, 0.);
+          let position = Isometry3::from_parts(
+            Translation3::from(translation.coords),
+            UnitQuaternion::identity(),
+          );
+          spawn_model_events.send(SpawnModelEvent { model, position });
         }
       }
     });
@@ -96,10 +114,11 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
+      .add_plugin(EguiPlugin)
+      .add_plugin(bevy_world_visualizer::WorldVisualizerPlugin)
       .init_resource::<InternedTextures>()
       .add_system(ui_system.system())
       .add_system(toggle_world_visualizer.system())
-      .add_plugin(EguiPlugin)
-      .on_state_enter(ASSET_STAGE, AssetState::Finished, load_assets.system());
+      .add_system_to_stage(stage::POST_UPDATE, load_assets.system());
   }
 }

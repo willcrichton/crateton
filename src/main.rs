@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 
 mod assets;
+mod json;
 mod map;
 mod math;
+mod models;
 mod physics;
 mod player;
 mod prelude;
@@ -30,10 +32,10 @@ fn main() {
     .add_plugin(shaders::ShadersPlugin)
     .add_plugin(map::MapPlugin)
     .add_plugin(ui::UiPlugin)
-    // External plugins
-    .add_plugin(bevy_rapier3d::physics::RapierPhysicsPlugin)
-    //.add_plugin(bevy_rapier3d::render::RapierRenderPlugin)
-    .add_plugin(bevy_world_visualizer::WorldVisualizerPlugin);
+    .add_plugin(json::JsonPlugin)
+    .add_plugin(models::ModelsPlugin);
+  // External plugins
+  //.add_plugin(bevy_rapier3d::render::RapierRenderPlugin)
 
   #[cfg(target_arch = "wasm32")]
   app.add_plugin(bevy_webgl2::WebGL2Plugin);

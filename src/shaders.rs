@@ -64,7 +64,7 @@ fn handle_shader_events(
         .filter(|p| p.pipeline != *pipeline)
         .collect();
     };
-    
+
     if mesh_query.get(*entity).is_ok() {
       detach(*entity);
     } else {
