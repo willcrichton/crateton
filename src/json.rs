@@ -1,4 +1,3 @@
-use anyhow::Result;
 use bevy::{
   asset::{AssetLoader, LoadContext, LoadedAsset},
   prelude::*,
@@ -65,17 +64,6 @@ impl JsonLoader {
     let loaders = self.0.entry(entity).or_insert_with(Vec::new);
     loaders.push(ValueLoader::new::<T>(handle));
   }
-
-  pub fn load_child<T: DeserializeOwned + Send + Sync + 'static>(
-    &mut self,
-    parent: &mut ChildBuilder,
-    handle: Handle<JsonData>,
-  ) {
-    let entity = parent.current_entity().unwrap();
-    parent.with(LoadingJsonTag::<T>(PhantomData));
-    let loaders = self.0.entry(entity).or_insert_with(Vec::new);
-    loaders.push(ValueLoader::new::<T>(handle));
-  }
 }
 
 pub struct LoadingJsonTag<T>(PhantomData<T>);
@@ -85,7 +73,7 @@ fn load_json(
   assets: Res<Assets<JsonData>>,
   mut json_loader: ResMut<JsonLoader>,
 ) {
-  for (entity, mut loaders) in json_loader.0.iter_mut() {
+  for (entity, loaders) in json_loader.0.iter_mut() {
     let mut to_delete = vec![];
     for (i, loader) in loaders.iter().enumerate() {
       if let Some(data) = assets.get(loader.handle.clone()) {

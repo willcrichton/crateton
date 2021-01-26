@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 
-mod assets;
 mod json;
 mod map;
 mod math;
@@ -25,7 +24,6 @@ fn main() {
     // Bevy core plugins
     .add_plugins(DefaultPlugins)
     // Internal plugins
-    .add_plugin(assets::AssetsPlugin)
     .add_plugin(physics::PhysicsPlugin)
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)

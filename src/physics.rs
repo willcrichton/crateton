@@ -21,7 +21,6 @@ use ncollide3d::{
   procedural::{IndexBuffer, TriMesh as NTrimesh},
   shape::TriMesh as NSTriMesh,
 };
-use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
 pub struct MeshWrapper<'a> {
@@ -116,17 +115,6 @@ impl<'a> MeshWrapper<'a> {
     commands.insert_one(entity, ColliderBuilder::trimesh(vertices, indices));
 
     Some(())
-  }
-
-  pub fn aabb(&self) -> AABB<f32> {
-    let vertices = self.vertices();
-    let indices = self.indices();
-    let trimesh = NSTriMesh::new(
-      vertices,
-      indices.into_iter().map(|p| p.map(|n| n as usize)).collect(),
-      None,
-    );
-    trimesh.aabb().clone()
   }
 
   pub fn build_collider(

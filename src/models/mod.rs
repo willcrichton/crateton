@@ -1,4 +1,4 @@
-use crate::{physics::ColliderParams, prelude::*};
+use crate::{json::JsonLoader, physics::ColliderParams, prelude::*};
 use bevy_rapier3d::{na::Isometry3, rapier::dynamics::BodyStatus};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -51,6 +51,48 @@ impl ModelInfo {
   }
 }
 
+struct ModelCategory(Entity);
+
+fn model_init(commands: &mut Commands, mut category: ResMut<ModelCategory>) {
+  let entity = commands
+    .spawn((Name::new("Models"),))
+    .current_entity()
+    .unwrap();
+  category.0 = entity;
+}
+
+pub struct LoadModelEvent {
+  pub path: String,
+}
+
+fn listen_for_load_models(
+  commands: &mut Commands,
+  asset_server: Res<AssetServer>,
+  mut json_loader: ResMut<JsonLoader>,
+  mut event_reader: EventReader<LoadModelEvent>,
+  category: Res<ModelCategory>,
+) {
+  let io = asset_server.io();
+  for LoadModelEvent { path } in event_reader.iter() {
+    let path = path.to_string();
+    let name = Path::new(&path)
+      .file_stem()
+      .unwrap()
+      .to_str()
+      .unwrap()
+      .to_string();
+    let scene: Handle<Scene> = asset_server.load(path.as_str());
+    let model_info = ModelInfo { name, path };
+    commands.spawn((scene, model_info.clone(), Parent(category.0)));
+
+    if io.exists(&model_info.params_path()) {
+      json_loader.load::<ModelParams>(commands, asset_server.load(model_info.params_path()));
+    } else {
+      commands.with(ModelParams::default());
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct SpawnModelEvent {
   pub model: Entity,
@@ -90,9 +132,13 @@ pub struct ModelsPlugin;
 impl Plugin for ModelsPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
+      .add_resource(ModelCategory(Entity::from_bits(0)))
       .add_event::<SpawnModelEvent>()
+      .add_event::<LoadModelEvent>()
+      .add_startup_system(model_init.system())
       .add_system(thumbnail::load_thumbnail.system())
       .add_system(decomposition::load_decomp.system())
-      .add_system(listen_for_spawn_models.system());
+      .add_system(listen_for_spawn_models.system())
+      .add_system(listen_for_load_models.system());
   }
 }

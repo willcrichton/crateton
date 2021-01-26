@@ -1,29 +1,35 @@
-use crate::{
-  assets::{AssetRegistry, AssetState, ASSET_STAGE},
-  json::*,
-  models::*,
-  physics::{ColliderParams, MeshWrapper},
-  player::raycast::ViewInfo,
-  prelude::*,
+use crate::{models::*, physics::ColliderParams, prelude::*};
+use bevy_rapier3d::{
+  na::{Isometry3, Translation3, UnitQuaternion, Vector3},
+  rapier::dynamics::BodyStatus,
 };
-use bevy::{
-  asset::{AssetLoader, LoadContext, LoadedAsset},
-  reflect::TypeUuid,
-  tasks::TaskPoolBuilder,
-};
-
-use std::marker::PhantomData;
-
-use bevy_rapier3d::rapier::dynamics::BodyStatus;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
 
 fn init_map(
   commands: &mut Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
+  mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
+  model_query: Query<(Entity, &ModelInfo), With<ModelParams>>,
+  mut done: Local<bool>,
 ) {
+  if *done {
+    return;
+  }
+
+  let model = match model_query.iter().find(|(_, info)| info.name == "Duck") {
+    Some((model, _)) => model,
+    None => {
+      return;
+    }
+  };
+  *done = true;
+
+  let position = Isometry3::from_parts(
+    Translation3::from(Vector3::new(0., 100., 0.)),
+    UnitQuaternion::identity(),
+  );
+  spawn_model_events.send(SpawnModelEvent { model, position });
+
   let lights = vec![LightBundle {
     transform: Transform::from_translation(Vec3::new(4.0, 5.0, 4.0)),
     ..Default::default()
@@ -76,26 +82,9 @@ fn init_map(
     },
     Name::new("box"),
   ));
-
-  // let monkey = &map_assets.models["Duck"];
-  // monkey.spawn(
-  //   commands,
-  //   &json_assets,
-  //   Isometry3::from_parts(
-  //     Translation3::from(Vector3::new(0., 100., 0.)),
-  //     UnitQuaternion::identity(),
-  //   ),
-  // );
-  // commands.with(Name::new("duck"));
 }
 
-fn load_map_assets(
-  commands: &mut Commands,
-  //mut map_assets: ResMut<MapAssets>,
-  //mut asset_registry: ResMut<AssetRegistry>,
-  asset_server: Res<AssetServer>,
-  mut json_loader: ResMut<JsonLoader>,
-) {
+fn load_map_assets(mut events: ResMut<Events<LoadModelEvent>>) {
   let model_paths = vec![
     "models/monkey/Monkey.gltf#Scene0",
     //"models/car/car.gltf#Scene0",
@@ -103,30 +92,10 @@ fn load_map_assets(
     "models/Duck/Duck.gltf#Scene0",
   ];
 
-  let model_parent = commands
-    .spawn((Name::new("Models"),))
-    .with_children(|parent| {
-      let io = asset_server.io();
-      for path in model_paths.into_iter() {
-        let path = path.to_string();
-        let name = Path::new(&path)
-          .file_stem()
-          .unwrap()
-          .to_str()
-          .unwrap()
-          .to_string();
-        let scene: Handle<Scene> = asset_server.load(path.as_str());
-        let model_info = ModelInfo { name, path };
-        parent.spawn((scene, model_info.clone()));
-
-        if io.exists(&model_info.params_path()) {
-          json_loader
-            .load_child::<ModelParams>(parent, asset_server.load(model_info.params_path()));
-        } else {
-          parent.with(ModelParams::default());
-        }
-      }
-    });
+  for path in model_paths {
+    let path = path.to_string();
+    events.send(LoadModelEvent { path });
+  }
 }
 
 pub struct MapPlugin;
@@ -134,6 +103,6 @@ impl Plugin for MapPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
       .add_startup_system(load_map_assets.system())
-      .on_state_enter(ASSET_STAGE, AssetState::Finished, init_map.system());
+      .add_system(init_map.system());
   }
 }

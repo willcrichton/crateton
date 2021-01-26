@@ -1,7 +1,7 @@
 use super::ModelInfo;
 use crate::json::*;
 use crate::{physics::MeshWrapper, prelude::*};
-use bevy_rapier3d::na::{Isometry3, Point3, Translation3, UnitQuaternion, Vector3};
+use bevy_rapier3d::na::{Point3, Vector3};
 use ncollide3d::{
   bounding_volume::AABB,
   procedural::{IndexBuffer, TriMesh as NTriMesh},
@@ -9,7 +9,6 @@ use ncollide3d::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::marker::PhantomData;
 use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
@@ -46,8 +45,8 @@ impl SceneDecomposition {
   pub fn aabb(&self, scale: &Vector3<f32>) -> AABB<f32> {
     self
       .meshes
-      .iter()
-      .map(|(entity, decomp)| {
+      .values()
+      .map(|decomp| {
         let meshes = decomp.to_trimesh(scale);
         meshes
           .into_iter()

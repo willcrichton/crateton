@@ -1,7 +1,6 @@
 // Adapted from https://github.com/Laumania/Unity3d-PhysicsGun
 
 use crate::{
-  assets::AssetRegistry,
   player::{raycast::ViewInfo, spawn::Player},
   prelude::*,
   shaders::{AttachShaderEvent, DetachShaderEvent},
@@ -167,7 +166,6 @@ struct OutlineShader(Handle<PipelineDescriptor>);
 fn tool_assets(
   mut pipelines: ResMut<Assets<PipelineDescriptor>>,
   mut outline_shader: ResMut<OutlineShader>,
-  mut asset_registry: ResMut<AssetRegistry>,
   asset_server: Res<AssetServer>,
 ) {
   outline_shader.0 = pipelines.add(PipelineDescriptor {
@@ -176,8 +174,8 @@ fn tool_assets(
       ..Default::default()
     }),
     ..PipelineDescriptor::default_config(ShaderStages {
-      vertex: asset_registry.register_shader(&asset_server, "shaders/silhouette.vert"),
-      fragment: Some(asset_registry.register_shader(&asset_server, "shaders/silhouette.frag")),
+      vertex: asset_server.load("shaders/silhouette.vert"),
+      fragment: Some(asset_server.load("shaders/silhouette.frag")),
     })
   });
 }

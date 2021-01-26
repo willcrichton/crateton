@@ -1,5 +1,4 @@
 use crate::{
-  assets::{AssetState, ASSET_STAGE},
   models::{ModelInfo, ModelParams, SceneDecomposition, SpawnModelEvent, Thumbnail},
   player::{controller::CharacterController, raycast::ViewInfo},
   prelude::*,
