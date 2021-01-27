@@ -31,7 +31,7 @@ ncollide3d = "0.26"
 winit = {version = "0.24.0"}
 bevy_webgl2 = {version = "0.4.0", optional = true}
 bevy_egui = "0.1.2"
-bevy_world_visualizer = {path = "../bevy_world_visualizer", features=["rapier"]}
+bevy-inspector-egui = "0.3.0"
 serde = {version = "1", features=["derive"]}
 serde_json = "1"
 anyhow = "1.0"
@@ -46,4 +46,4 @@ winit = { path = "../winit" }
 bevy_winit = { path = "../bevy/crates/bevy_winit" } # only needed for bevy_egui
 bevy_egui = { path = "../bevy_egui" }
 bevy_webgl2 = { path = "../bevy_webgl2" }
-# bevy-inspector-egui = { path = "../bevy-inspector-egui" }
+bevy-inspector-egui = { path = "../bevy-inspector-egui" }

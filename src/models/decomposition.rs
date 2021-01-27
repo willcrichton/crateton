@@ -43,20 +43,21 @@ pub struct SceneDecomposition {
 
 impl SceneDecomposition {
   pub fn aabb(&self, scale: &Vector3<f32>) -> AABB<f32> {
-    self
-      .meshes
-      .values()
-      .map(|decomp| {
-        let meshes = decomp.to_trimesh(scale);
-        meshes
-          .into_iter()
-          .map(|mesh| NSTriMesh::from(mesh).aabb().clone())
-      })
-      .flatten()
-      .fold(
-        AABB::new(Point3::origin(), Point3::origin()),
-        |aabb1, aabb2| AABB::new(aabb1.mins.inf(&aabb2.mins), aabb1.maxs.sup(&aabb2.maxs)),
-      )
+    let mut mins = Point3::new(f32::MAX, f32::MAX, f32::MAX);
+    let mut maxs = Point3::new(f32::MIN, f32::MIN, f32::MIN);
+    for mesh in self.meshes.values() {
+      for (coords, _) in &mesh.0 {
+        for coord in coords {
+          mins = mins.inf(&coord.to_na_point3());
+          maxs = maxs.sup(&coord.to_na_point3());
+        }
+      }
+    }
+
+    AABB::new(
+      Point3::from(mins.coords.component_mul(scale)),
+      Point3::from(maxs.coords.component_mul(scale)),
+    )
   }
 }
 

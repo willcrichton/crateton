@@ -18,7 +18,7 @@ mod texture;
 /// This example renders a second camera to a texture and saves it to a file
 fn main() {
   App::build()
-    //.add_resource(Msaa { samples: 4 })
+    .add_resource(Msaa { samples: 4 })
     .add_plugins(DefaultPlugins)
     .add_startup_system(setup.system())
     .add_system_to_stage(stage::LAST, wait_for_spawn.system())
@@ -47,6 +47,12 @@ fn setup(
 ) {
   let args = env::args().collect::<Vec<_>>();
   let path = &args[1];
+  let numbers = args[2..8]
+    .iter()
+    .map(|n| n.parse::<f32>().unwrap())
+    .collect::<Vec<_>>();
+  let center = &numbers[..3];
+  let extents = &numbers[3..];
 
   let size = Extent3d::new(512, 512, 1);
 
@@ -159,7 +165,6 @@ fn setup(
 
   // create a closure to save the file
   let output_path = PathBuf::from(path).parent().unwrap().join("thumbnail.jpg");
-  info!("{:?}", output_path);
   let file_saver = move |data: &[u8], descriptor: TextureDescriptor| match descriptor.format {
     TextureFormat::Bgra8UnormSrgb => {
       image::save_buffer(
@@ -204,13 +209,17 @@ fn setup(
 
   // SETUP SCENE
 
+  // HACK: flight helmet is too zoomed in?
+  let mul = if extents[0] < 0.5 { 2.0 } else { 1.0 };
+  
+  let camera = Vec3::new(extents[0] * 3. * mul, extents[1] * mul, extents[2] * 2. * mul);
   commands
     .spawn((Tag,))
     .with_children(|parent| {
       parent.spawn_scene(asset_server.load(path.as_str()));
     })
     .spawn(LightBundle {
-      transform: Transform::from_xyz(4.0, 5.0, 4.0),
+      transform: Transform::from_translation(camera),
       ..Default::default()
     })
     // main camera
@@ -227,7 +236,8 @@ fn setup(
       ..Default::default()
     },
     // TODO: pick a transform that matches the AABB of the mesh
-    transform: Transform::from_xyz(3.0, 0.0, 3.0).looking_at(Vec3::default(), Vec3::unit_y()),
+    transform: Transform::from_translation(camera)
+      .looking_at(Vec3::new(center[0], center[1], center[2]), Vec3::unit_y()),
     ..Default::default()
   };
   let camera_projection = &mut secondary_camera.perspective_projection;

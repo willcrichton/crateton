@@ -4,8 +4,8 @@ use crate::{
   prelude::*,
 };
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_inspector_egui::world_inspector::{InspectableRegistry, WorldUIContext};
 use bevy_rapier3d::na::{Isometry3, Translation3, UnitQuaternion, Vector3};
-use bevy_world_visualizer::WorldVisualizerParams;
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -40,7 +40,7 @@ fn load_assets(
   }
 }
 
-fn ui_system(
+fn spawn_ui_system(
   controller: Res<CharacterController>,
   keyboard_input: Res<Input<KeyCode>>,
   mut windows: ResMut<Windows>,
@@ -92,20 +92,25 @@ fn ui_system(
   }
 }
 
-fn toggle_world_visualizer(
-  mut params: ResMut<WorldVisualizerParams>,
-  keyboard_input: Res<Input<KeyCode>>,
-  character_controller: Res<CharacterController>,
-  mut windows: ResMut<Windows>,
-) {
+fn debugger_system(world: &mut World, resources: &mut Resources) {
+  let keyboard_input = resources.get::<Input<KeyCode>>().unwrap();
+  let character_controller = resources.get::<CharacterController>().unwrap();
+  let mut windows = resources.get_mut::<Windows>().unwrap();
   let window = windows.get_primary_mut().unwrap();
 
   let key = character_controller.input_map.key_toggle_world_visualizer;
-  params.show = keyboard_input.pressed(key);
+  let show = keyboard_input.pressed(key);
   if keyboard_input.just_pressed(key) || keyboard_input.just_released(key) {
-    window.set_cursor_lock_mode(!params.show);
-    window.set_cursor_visibility(params.show);
-    // NOTE: potential inconsistency if pressing tab and alt together
+    window.set_cursor_lock_mode(!show);
+    window.set_cursor_visibility(show);
+  }
+
+  if show {
+    let egui_context = resources.get::<EguiContext>().unwrap();
+    let ctx = &egui_context.ctx;
+    egui::Window::new("Debugger").scroll(true).show(ctx, |ui| {
+      WorldUIContext::new(world, resources).ui(ui, &Default::default());
+    });
   }
 }
 
@@ -114,10 +119,10 @@ impl Plugin for UiPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
       .add_plugin(EguiPlugin)
-      .add_plugin(bevy_world_visualizer::WorldVisualizerPlugin)
+      .init_resource::<InspectableRegistry>()
       .init_resource::<InternedTextures>()
-      .add_system(ui_system.system())
-      .add_system(toggle_world_visualizer.system())
+      .add_system(spawn_ui_system.system())
+      .add_system(debugger_system.system())
       .add_system_to_stage(stage::POST_UPDATE, load_assets.system());
   }
 }
