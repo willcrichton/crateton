@@ -1,12 +1,12 @@
 // Adapted from https://github.com/Laumania/Unity3d-PhysicsGun
 
 use crate::{
-  player::{raycast::ViewInfo, spawn::Player},
+  player::{controller::CharacterController, raycast::ViewInfo, spawn::Player},
   prelude::*,
   shaders::{AttachShaderEvent, DetachShaderEvent},
 };
 use bevy::{
-  input::mouse::MouseWheel,
+  input::mouse::{MouseMotion, MouseWheel},
   render::{
     pipeline::{CullMode, PipelineDescriptor, RasterizationStateDescriptor},
     shader::ShaderStages,
@@ -26,6 +26,7 @@ struct ToolStateInner {
   distance: f32,
   hit_offset: Vector3<f32>,
   rotation_difference: UnitQuaternion<f32>,
+  accumulated_rotation: UnitQuaternion<f32>,
 }
 
 #[derive(Default)]
@@ -110,6 +111,7 @@ fn tool_system(
             hit_offset: obj_transform.translation.vector - hit_point.coords,
             rotation_difference: player_transform.rotation.to_na_unit_quat().inverse()
               * obj_transform.rotation,
+            accumulated_rotation: UnitQuaternion::identity(),
           });
         }
       }
@@ -123,12 +125,15 @@ const DISTANCE_MIN: f32 = 3.;
 
 fn move_system(
   time: Res<Time>,
+  keyboard_input: Res<Input<KeyCode>>,
   mut mouse_wheel_reader: EventReader<MouseWheel>,
+  mut mouse_motion_reader: EventReader<MouseMotion>,
   mut tool_state: ResMut<ToolState>,
   mut bodies: ResMut<RigidBodySet>,
   player: Res<Player>,
   transform_query: Query<&GlobalTransform>,
   view_info: ResMut<ViewInfo>,
+  controller: Res<CharacterController>,
 ) {
   if let Some(inner) = tool_state.0.as_mut() {
     // Change distance from player based on mouse wheel
@@ -144,7 +149,45 @@ fn move_system(
 
     let player_transform = transform_query.get(player.camera).unwrap();
     let player_rotation = player_transform.rotation.to_na_unit_quat();
-    // TODO: allow player to change rotation with E
+
+    if keyboard_input.pressed(controller.input_map.key_rotate_toolgun) {
+      for event in mouse_motion_reader.iter() {
+        let delta = event.delta;
+        let snap_mode = keyboard_input.pressed(controller.input_map.key_lock_rotation);
+
+        // After testing, if snap rotation accumulates as normal rotation, then feels too fast
+        let multiplier = if snap_mode { 0.005 } else { 0.01 };
+        let dx = delta.x as f32 * multiplier;
+        let dy = delta.y as f32 * multiplier;
+
+        let rx = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), dx);
+        let ry = UnitQuaternion::from_axis_angle(&Vector3::x_axis(), dy);
+
+        let round_to_nearest = |n: f32, r: f32| (n / r).round() * r;
+        let snap = |q: UnitQuaternion<f32>| {
+          let (r, p, y) = q.euler_angles();
+          let deg = std::f32::consts::PI / 4.;
+          UnitQuaternion::from_euler_angles(
+            round_to_nearest(r, deg),
+            round_to_nearest(p, deg),
+            round_to_nearest(y, deg),
+          )
+        };
+
+        if snap_mode {
+          inner.accumulated_rotation = rx * ry * inner.accumulated_rotation;
+          inner.rotation_difference = snap(inner.rotation_difference);
+          let new_diff = snap(inner.accumulated_rotation * inner.rotation_difference);
+          if inner.rotation_difference.angle_to(&new_diff) > 0.01 {
+            inner.rotation_difference = new_diff;
+            inner.accumulated_rotation = UnitQuaternion::identity();
+          }
+        } else {
+          inner.rotation_difference = rx * ry * inner.rotation_difference;
+        }
+      }
+    }
+
     let desired_rotation = player_rotation * inner.rotation_difference;
     inner.rotation_difference = player_rotation.inverse() * desired_rotation;
 

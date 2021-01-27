@@ -5,7 +5,6 @@ use bevy_rapier3d::na::{Point3, Vector3};
 use ncollide3d::{
   bounding_volume::AABB,
   procedural::{IndexBuffer, TriMesh as NTriMesh},
-  shape::TriMesh as NSTriMesh,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

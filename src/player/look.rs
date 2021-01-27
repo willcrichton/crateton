@@ -1,6 +1,6 @@
 // system that converts delta axis events into pitch and yaw
-use super::events::{LookDeltaEvent, LookEvent, PitchEvent, YawEvent};
-use bevy::{input::mouse::MouseMotion, prelude::*};
+use super::{controller::CharacterController, events::{LookDeltaEvent, LookEvent, PitchEvent, YawEvent}};
+use bevy::{input::{mouse::MouseMotion}, prelude::*};
 
 #[derive(Clone, Copy)]
 pub struct LookDirection {
@@ -51,6 +51,7 @@ impl Default for MouseSettings {
 const PITCH_BOUND: f32 = std::f32::consts::FRAC_PI_2 - 1E-3;
 
 pub fn input_to_look(
+  keyboard_input: Res<Input<KeyCode>>,
   mut settings: ResMut<MouseSettings>,
   mut mouse_motion: EventReader<MouseMotion>,
   mut pitch_events: ResMut<Events<PitchEvent>>,
@@ -58,9 +59,15 @@ pub fn input_to_look(
   mut look_events: ResMut<Events<LookEvent>>,
   mut look_delta_events: ResMut<Events<LookDeltaEvent>>,
   windows: Res<Windows>,
+  controller: Res<CharacterController>,
 ) {
   let window = windows.get_primary().unwrap();
   if !window.cursor_locked() {
+    return;
+  }
+
+  // TODO: make this modular
+  if keyboard_input.pressed(controller.input_map.key_rotate_toolgun) {
     return;
   }
 

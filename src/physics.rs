@@ -307,6 +307,7 @@ impl AABBExt for AABB<f32> {
   }
 }
 
+// TODO: configure rapier to avoid clipping issues
 fn configure_rapier(mut integration_params: ResMut<IntegrationParameters>) {
   integration_params.ccd_on_penetration_enabled = true;
   integration_params.max_velocity_iterations *= 2;
