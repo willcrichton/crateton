@@ -1,7 +1,5 @@
 use super::{controller, look};
 use crate::prelude::*;
-
-use bevy::{prelude::*, render::camera::PerspectiveProjection};
 use bevy_rapier3d::{
   na::Vector3,
   rapier::{
@@ -31,7 +29,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .current_entity()
     .unwrap();
   let rigid_body = RigidBodyBuilder::new_dynamic()
-    .translation(3., height * 2., 0.)
+    .translation(0., height, 5.5)
     .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false))
     .entity(body);
   let collider = ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
@@ -82,11 +80,9 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
   let perspective = controller::Perspective::FirstPerson;
   let camera = commands
     .spawn(Camera3dBundle {
-      transform: perspective.to_transform(),
-      perspective_projection: PerspectiveProjection {
-        far: 200.,
-        ..Default::default()
-      },
+      transform: perspective
+        .to_transform(),
+        //.looking_at(Vec3::new(0., height, 0.), Vec3::unit_y()),
       ..Default::default()
     })
     .with_bundle((
