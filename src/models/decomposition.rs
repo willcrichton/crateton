@@ -1,7 +1,8 @@
-use super::ModelInfo;
+use super::{ModelInfo, ModelParams};
 use crate::json::*;
 use crate::{physics::MeshWrapper, prelude::*};
-use bevy_rapier3d::na::{Point3, Vector3};
+use bevy::transform::transform_propagate_system::transform_propagate_system;
+use bevy_rapier3d::na::{Point3};
 use ncollide3d::{
   bounding_volume::AABB,
   procedural::{IndexBuffer, TriMesh as NTriMesh},
@@ -14,7 +15,7 @@ use std::path::Path;
 pub struct MeshDecomposition(Vec<(Vec<Vec3>, Vec<UVec3>)>);
 
 impl MeshDecomposition {
-  pub fn to_trimesh(&self, scale: &Vector3<f32>) -> Vec<NTriMesh<f32>> {
+  pub fn to_trimesh(&self) -> Vec<NTriMesh<f32>> {
     self
       .0
       .iter()
@@ -22,7 +23,7 @@ impl MeshDecomposition {
         NTriMesh::new(
           coords
             .iter()
-            .map(|coord| Point3::from(coord.to_na_point3().coords.component_mul(&scale)))
+            .map(|coord| Point3::from(coord.to_na_point3()))
             .collect(),
           None,
           None,
@@ -41,7 +42,7 @@ pub struct SceneDecomposition {
 }
 
 impl SceneDecomposition {
-  pub fn aabb(&self, scale: &Vector3<f32>) -> AABB<f32> {
+  pub fn aabb(&self) -> AABB<f32> {
     let mut mins = Point3::new(f32::MAX, f32::MAX, f32::MAX);
     let mut maxs = Point3::new(f32::MIN, f32::MIN, f32::MIN);
     for mesh in self.meshes.values() {
@@ -53,69 +54,98 @@ impl SceneDecomposition {
       }
     }
 
-    AABB::new(
-      Point3::from(mins.coords.component_mul(scale)),
-      Point3::from(maxs.coords.component_mul(scale)),
-    )
+    AABB::new(mins, maxs)
   }
+}
+
+fn update_global_transform(world: &mut World) {
+  let mut resources = Resources::default();
+  let mut update_stage = SystemStage::serial();
+  update_stage.add_system(transform_propagate_system.system());
+  let mut schedule = Schedule::default();
+  schedule.add_stage("update", update_stage);
+  schedule.initialize_and_run(world, &mut resources);
+}
+
+fn compute_mesh_decomposition(mesh: MeshWrapper) -> MeshDecomposition {
+  MeshDecomposition(
+    mesh
+      .compute_decomposition(None)
+      .into_iter()
+      .map(|trimesh| {
+        let indices = if let IndexBuffer::Unified(indices) = trimesh.indices {
+          indices
+            .into_iter()
+            .map(|point| UVec3::new(point.x, point.y, point.z))
+            .collect()
+        } else {
+          unimplemented!();
+        };
+
+        let coords = trimesh
+          .coords
+          .into_iter()
+          .map(|point| point.to_glam_vec3())
+          .collect();
+        (coords, indices)
+      })
+      .collect(),
+  )
+}
+
+fn compute_scene_decomposition(
+  world: &mut World,
+  model_params: &ModelParams,
+  meshes: &Assets<Mesh>,
+) -> SceneDecomposition {
+  let mut decomp = SceneDecomposition::default();
+  for (child, mesh_handle, transform) in world.query::<(Entity, &Handle<Mesh>, &GlobalTransform)>()
+  {
+    let mesh = meshes.get(mesh_handle.clone()).unwrap();
+    let scale = transform.scale * model_params.scale;
+    let offset = transform.translation;
+    decomp.meshes.insert(
+      child,
+      compute_mesh_decomposition(MeshWrapper::new(
+        mesh,
+        "Vertex_Position",
+        "Vertex_Normal",
+        scale.to_na_vector3(),
+        offset.to_na_vector3(),
+      )),
+    );
+  }
+  decomp
 }
 
 pub fn load_decomp(
   commands: &mut Commands,
   mut query: Query<
-    (Entity, &ModelInfo, &Handle<Scene>),
+    (Entity, &ModelInfo, &ModelParams, &Handle<Scene>),
     Without<LoadingJsonTag<SceneDecomposition>>,
   >,
-  scenes: Res<Assets<Scene>>,
+  mut scenes: ResMut<Assets<Scene>>,
   asset_server: Res<AssetServer>,
   meshes: Res<Assets<Mesh>>,
   mut json_loader: ResMut<JsonLoader>,
 ) {
   let io = asset_server.io();
-  for (entity, model_info, scene_handle) in query.iter_mut() {
-    let scene = if let Some(scene) = scenes.get(scene_handle.clone()) {
+  for (entity, model_info, model_params, scene_handle) in query.iter_mut() {
+    let scene = if let Some(scene) = scenes.get_mut(scene_handle.clone()) {
       scene
     } else {
       continue;
     };
 
+    update_global_transform(&mut scene.world);
+
     let mesh_decomposition_path = model_info.mesh_decomposition_path();
     if !io.exists(&mesh_decomposition_path) {
-      let mut decomp = SceneDecomposition::default();
-      for (child, mesh_handle) in scene.world.query::<(Entity, &Handle<Mesh>)>() {
-        let mesh = meshes.get(mesh_handle.clone()).unwrap();
-        let child_decomp = MeshWrapper::new(
-          mesh,
-          "Vertex_Position",
-          "Vertex_Normal",
-          Vector3::new(1., 1., 1.),
-        )
-        .compute_decomposition(None)
-        .into_iter()
-        .map(|trimesh| {
-          let indices = if let IndexBuffer::Unified(indices) = trimesh.indices {
-            indices
-              .into_iter()
-              .map(|point| UVec3::new(point.x, point.y, point.z))
-              .collect()
-          } else {
-            unimplemented!();
-          };
-
-          let coords = trimesh
-            .coords
-            .into_iter()
-            .map(|point| point.to_glam_vec3())
-            .collect();
-          (coords, indices)
-        })
-        .collect();
-        decomp.meshes.insert(child, MeshDecomposition(child_decomp));
-      }
-
+      let scene_decomposition =
+        compute_scene_decomposition(&mut scene.world, model_params, &meshes);
       let mut output_file =
         std::fs::File::create(&Path::new("assets").join(&mesh_decomposition_path)).unwrap();
-      serde_json::to_writer(&mut output_file, &decomp).unwrap();
+      serde_json::to_writer(&mut output_file, &scene_decomposition).unwrap();
     }
 
     commands.set_current_entity(entity);

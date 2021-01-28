@@ -28,6 +28,7 @@ pub struct MeshWrapper<'a> {
   normal_attribute: String,
   position_attribute: String,
   scale: Vector3<f32>,
+  offset: Vector3<f32>,
 }
 
 const HACD_ERROR: f32 = 0.10;
@@ -40,25 +41,24 @@ impl<'a> MeshWrapper<'a> {
     position_attribute: impl Into<String>,
     normal_attribute: impl Into<String>,
     scale: Vector3<f32>,
+    offset: Vector3<f32>,
   ) -> MeshWrapper<'a> {
     MeshWrapper {
       mesh,
       normal_attribute: normal_attribute.into(),
       position_attribute: position_attribute.into(),
       scale,
+      offset,
     }
   }
 
   pub fn compute_decomposition(&self, decomp: Option<&MeshDecomposition>) -> Vec<NTrimesh<f32>> {
-    decomp
-      .map(|decomp| decomp.to_trimesh(&self.scale))
-      .unwrap_or_else(|| {
-        let trimesh = self.to_ncollide_trimesh();
-        let (decomp, _partition) =
-          ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
-
-        decomp
-      })
+    decomp.map(|decomp| decomp.to_trimesh()).unwrap_or_else(|| {
+      let trimesh = self.to_ncollide_trimesh();
+      let (decomp, _partition) =
+        ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
+      decomp
+    })
   }
 
   fn build_approx_collider(
@@ -81,8 +81,9 @@ impl<'a> MeshWrapper<'a> {
         let aabb = AABB::from_half_extents(aabb.center(), half_extents);
         let center = aabb.center();
 
+        let translation = center + self.offset;
         let collider = ColliderBuilder::cuboid(half_extents.x, half_extents.y, half_extents.z)
-          .translation(center.x, center.y, center.z);
+          .translation(translation.x, translation.y, translation.z);
 
         let pbr = debug_cube.as_ref().map(|cube| PbrBundle {
           mesh: cube.clone(),
@@ -198,7 +199,7 @@ fn attach_collider(
   mesh_query: Query<&Handle<Mesh>>,
   decomp_query: Query<&SceneDecomposition>,
   instance_query: Query<&LatestInstance>,
-  mut transform_query: Query<&mut Transform>,
+  transform_query: Query<&GlobalTransform>,
   mut meshes: ResMut<Assets<Mesh>>,
   scene_spawner: Res<SceneSpawner>,
 ) {
@@ -206,19 +207,25 @@ fn attach_collider(
     let _debug_cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
 
     let body_status = collider_params.body_status;
-    let (position, scale) = transform_query.get_mut(entity).unwrap().to_na_isometry();
+    let (global_position, global_scale) = transform_query.get(entity).unwrap().to_na_isometry();
 
     if let Ok(mesh_handle) = mesh_query.get(entity) {
       let mesh = meshes.get(mesh_handle).unwrap();
-      MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", scale)
-        .build_collider(
-          commands,
-          entity,
-          body_status,
-          None, //Some(debug_cube),
-          None,
-        )
-        .unwrap();
+      MeshWrapper::new(
+        mesh,
+        "Vertex_Position",
+        "Vertex_Normal",
+        global_scale,
+        Vector3::zeros(),
+      )
+      .build_collider(
+        commands,
+        entity,
+        body_status,
+        None, //Some(debug_cube),
+        None,
+      )
+      .unwrap();
     } else {
       let children = utils::collect_children(entity, &children_query);
 
@@ -233,31 +240,32 @@ fn attach_collider(
       let instance = &instance_query.get(entity).unwrap().0;
       let entity_map = scene_spawner.entity_map(instance.clone()).unwrap();
 
-      transform_query.get_mut(entity).unwrap().scale = Vec3::new(1., 1., 1.);
-
       for child in children.iter() {
         if let Ok(mesh_handle) = mesh_query.get(*child) {
           let mesh = meshes.get(mesh_handle).unwrap();
-          transform_query.get_mut(*child).unwrap().scale = scale.to_glam_vec3();
-          MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", scale)
-            .build_collider(
-              commands,
-              entity,
-              body_status,
-              None, //Some(_debug_cube.clone()),
-              decomp.map(|decomp| {
-                let inst_entity = entity_map
-                  .keys()
-                  .find(|k| entity_map.get(*k).unwrap() == *child)
-                  .unwrap();
-                decomp.meshes.get(&inst_entity).unwrap()
-              }),
-            )
-            .unwrap();
-        } else {
-          if let Ok(mut transform) = transform_query.get_mut(*child) {
-            transform.scale = Vec3::new(1., 1., 1.);
-          }
+          let child_transform = transform_query.get(*child).unwrap();
+          info!("{:#?}", child_transform);
+          MeshWrapper::new(
+            mesh,
+            "Vertex_Position",
+            "Vertex_Normal",
+            child_transform.scale.to_na_vector3(),
+            child_transform.translation.to_na_vector3() - global_position.translation.vector,
+          )
+          .build_collider(
+            commands,
+            entity,
+            body_status,
+            None, //Some(_debug_cube.clone()),
+            decomp.map(|decomp| {
+              let inst_entity = entity_map
+                .keys()
+                .find(|k| entity_map.get(*k).unwrap() == *child)
+                .unwrap();
+              decomp.meshes.get(&inst_entity).unwrap()
+            }),
+          )
+          .unwrap();
         }
       }
 
@@ -265,7 +273,7 @@ fn attach_collider(
     }
 
     let rigid_body = RigidBodyBuilder::new(body_status)
-      .position(position)
+      .position(global_position)
       .entity(entity)
       .mass(collider_params.mass, false);
 

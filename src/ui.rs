@@ -1,10 +1,10 @@
 use crate::{
-  models::{ModelInfo, ModelParams, SceneDecomposition, SpawnModelEvent, Thumbnail},
+  models::{ModelInfo, SceneDecomposition, SpawnModelEvent, Thumbnail},
   player::{controller::CharacterController, raycast::ViewInfo},
   prelude::*,
 };
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-use bevy_inspector_egui::world_inspector::{InspectableRegistry, WorldUIContext};
+use bevy_inspector_egui::{Context, Inspectable, InspectableRegistry, WorldInspectorParams};
 use bevy_rapier3d::na::{Isometry3, Translation3, UnitQuaternion, Vector3};
 use std::collections::HashMap;
 
@@ -47,7 +47,7 @@ fn spawn_ui_system(
   mut egui_context: ResMut<EguiContext>,
   interned_textures: Res<InternedTextures>,
   mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
-  model_query: Query<(Entity, &ModelInfo, &SceneDecomposition, &ModelParams)>,
+  model_query: Query<(Entity, &ModelInfo, &SceneDecomposition)>,
   view_info: Res<ViewInfo>,
 ) {
   let ctx = &mut egui_context.ctx;
@@ -62,7 +62,7 @@ fn spawn_ui_system(
 
   if keyboard_input.pressed(controller.input_map.key_show_ui) {
     egui::Window::new("Spawn window").show(ctx, |ui| {
-      for (model, model_info, decomp, model_params) in model_query.iter() {
+      for (model, model_info, decomp) in model_query.iter() {
         let texture_id = if let Some(texture_id) = interned_textures.get_egui_id(&model_info.name) {
           texture_id
         } else {
@@ -75,7 +75,7 @@ fn spawn_ui_system(
         ));
 
         if thumbnail.clicked {
-          let aabb = decomp.aabb(&model_params.scale.to_na_vector3());
+          let aabb = decomp.aabb();
           let half_height = aabb.half_extents().y;
           let mut translation = view_info
             .hit_point()
@@ -109,7 +109,17 @@ fn debugger_system(world: &mut World, resources: &mut Resources) {
     let egui_context = resources.get::<EguiContext>().unwrap();
     let ctx = &egui_context.ctx;
     egui::Window::new("Debugger").scroll(true).show(ctx, |ui| {
-      WorldUIContext::new(world, resources).ui(ui, &Default::default());
+      world.ui(
+        ui,
+        WorldInspectorParams {
+          cluster_by_archetype: false,
+          ..Default::default()
+        },
+        &Context {
+          resources: Some(resources),
+          world: None,
+        },
+      );
     });
   }
 }

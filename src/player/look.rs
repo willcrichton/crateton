@@ -1,6 +1,9 @@
 // system that converts delta axis events into pitch and yaw
-use super::{controller::CharacterController, events::{LookDeltaEvent, LookEvent, PitchEvent, YawEvent}};
-use bevy::{input::{mouse::MouseMotion}, prelude::*};
+use super::{
+  controller::CharacterController,
+  events::{LookDeltaEvent, LookEvent, PitchEvent, YawEvent},
+};
+use bevy::{input::mouse::MouseMotion, prelude::*};
 
 #[derive(Clone, Copy)]
 pub struct LookDirection {

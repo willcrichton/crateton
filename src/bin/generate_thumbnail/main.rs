@@ -47,12 +47,13 @@ fn setup(
 ) {
   let args = env::args().collect::<Vec<_>>();
   let path = &args[1];
-  let numbers = args[2..8]
+  let numbers = args[2..11]
     .iter()
     .map(|n| n.parse::<f32>().unwrap())
     .collect::<Vec<_>>();
   let center = &numbers[..3];
-  let extents = &numbers[3..];
+  let extents = &numbers[3..6];
+  let scale = &numbers[6..];
 
   let size = Extent3d::new(512, 512, 1);
 
@@ -211,10 +212,18 @@ fn setup(
 
   // HACK: flight helmet is too zoomed in?
   let mul = if extents[0] < 0.5 { 2.0 } else { 1.0 };
-  
-  let camera = Vec3::new(extents[0] * 3. * mul, extents[1] * mul, extents[2] * 2. * mul);
+
+  let camera = Vec3::new(
+    extents[0] * 3. * mul,
+    extents[1] * mul,
+    extents[2] * 2. * mul,
+  );
   commands
-    .spawn((Tag,))
+    .spawn((
+      Tag,
+      GlobalTransform::identity(),
+      Transform::from_scale(Vec3::new(scale[0], scale[1], scale[2])),
+    ))
     .with_children(|parent| {
       parent.spawn_scene(asset_server.load(path.as_str()));
     })

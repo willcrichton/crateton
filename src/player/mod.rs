@@ -17,6 +17,7 @@ pub struct PlayerControllerPlugin;
 impl Plugin for PlayerControllerPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
+      //.add_plugin(bevy_skybox::SkyboxPlugin::from_image_file("images/skybox/sky2.png"))
       .add_startup_system(spawn::spawn_character.system())
       .add_startup_system(spawn::init_hud.system())
       //

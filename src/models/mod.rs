@@ -9,22 +9,31 @@ mod thumbnail;
 pub use decomposition::{MeshDecomposition, SceneDecomposition};
 pub use thumbnail::Thumbnail;
 
+fn scale_default() -> Vec3 {
+  Vec3::new(1., 1., 1.)
+}
+
+fn mass_default() -> f32 {
+  1.
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ModelParams {
-  #[serde(default)]
+  #[serde(default = "scale_default")]
   pub scale: Vec3,
-  #[serde(default)]
+  #[serde(default = "mass_default")]
   pub mass: f32,
 }
 
 impl Default for ModelParams {
   fn default() -> Self {
     ModelParams {
-      scale: Vec3::new(1., 1., 1.),
-      mass: 1.0,
+      scale: scale_default(),
+      mass: mass_default(),
     }
   }
 }
+
 pub struct ModelInstance(pub Entity);
 
 #[derive(Clone, Debug)]
@@ -107,6 +116,14 @@ fn listen_for_spawn_models(
   for event in event_reader.iter() {
     let SpawnModelEvent { model, position } = &event;
     let (model_info, params, scene_handle) = query.get(*model).unwrap();
+    // info!("initial position {:#?}", position);
+    // info!("inital scale: {:#?}", params.scale);
+    // info!("position.rotation {:?}, to _glam quat {:?}", position.rotation, position.rotation.to_glam_quat());
+    // info!("spawned with {:#?}", Transform::from_matrix(Mat4::from_scale_rotation_translation(
+    //   params.scale,
+    //   position.rotation.to_glam_quat(),
+    //   position.translation.vector.to_glam_vec3(),
+    // )));
     commands
       .spawn((
         Transform::from_matrix(Mat4::from_scale_rotation_translation(
@@ -114,7 +131,7 @@ fn listen_for_spawn_models(
           position.rotation.to_glam_quat(),
           position.translation.vector.to_glam_vec3(),
         )),
-        GlobalTransform::default(),
+        GlobalTransform::identity(),
         ColliderParams {
           body_status: BodyStatus::Dynamic,
           mass: params.mass,

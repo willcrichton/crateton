@@ -90,6 +90,7 @@ fn load_map_assets(mut events: ResMut<Events<LoadModelEvent>>) {
     //"models/car/car.gltf#Scene0",
     "models/FlightHelmet/FlightHelmet.gltf#Scene0",
     "models/Duck/Duck.gltf#Scene0",
+    "models/website-terrain/WebsiteTerrain.gltf#Scene0",
   ];
 
   for path in model_paths {

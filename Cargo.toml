@@ -36,6 +36,8 @@ serde = {version = "1", features=["derive"]}
 serde_json = "1"
 anyhow = "1.0"
 image = "0.23.12"
+itertools = "0.10"
+# bevy_skybox = "0.3.0"
 
 # crateton_core = { path = "crates/crateton_core" }
 # crateton_scripts = { path = "crates/crateton_scripts" }
@@ -47,3 +49,4 @@ bevy_winit = { path = "../bevy/crates/bevy_winit" } # only needed for bevy_egui
 bevy_egui = { path = "../bevy_egui" }
 bevy_webgl2 = { path = "../bevy_webgl2" }
 bevy-inspector-egui = { path = "../bevy-inspector-egui" }
+# bevy_skybox = { path = "../bevy_skybox" }

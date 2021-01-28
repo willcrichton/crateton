@@ -1,7 +1,7 @@
 use super::{controller, look};
 use crate::prelude::*;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::PerspectiveProjection};
 use bevy_rapier3d::{
   na::Vector3,
   rapier::{
@@ -83,6 +83,10 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
   let camera = commands
     .spawn(Camera3dBundle {
       transform: perspective.to_transform(),
+      perspective_projection: PerspectiveProjection {
+        far: 200.,
+        ..Default::default()
+      },
       ..Default::default()
     })
     .with_bundle((
@@ -90,6 +94,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
       controller::CameraTag,
       perspective,
       Name::new("camera 3d"),
+      //bevy_skybox::SkyboxCamera
     ))
     .current_entity()
     .unwrap();
