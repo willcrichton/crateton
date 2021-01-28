@@ -2,7 +2,7 @@ use super::{ModelInfo, ModelParams};
 use crate::json::*;
 use crate::{physics::MeshWrapper, prelude::*};
 use bevy::transform::transform_propagate_system::transform_propagate_system;
-use bevy_rapier3d::na::{Point3};
+use bevy_rapier3d::na::Point3;
 use ncollide3d::{
   bounding_volume::AABB,
   procedural::{IndexBuffer, TriMesh as NTriMesh},

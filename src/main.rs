@@ -32,7 +32,7 @@ fn main() {
     .add_plugin(ui::UiPlugin)
     .add_plugin(json::JsonPlugin)
     .add_plugin(models::ModelsPlugin);
-    
+
   // External plugins
   // app.add_plugin(bevy_rapier3d::render::RapierRenderPlugin);
 

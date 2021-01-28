@@ -113,7 +113,11 @@ impl<'a> MeshWrapper<'a> {
   fn build_exact_collider(&self, commands: &mut Commands, entity: Entity) -> Option<()> {
     let vertices = self.vertices();
     let indices = self.indices();
-    commands.insert_one(entity, ColliderBuilder::trimesh(vertices, indices));
+    let offset = &self.offset;
+    commands.insert_one(
+      entity,
+      ColliderBuilder::trimesh(vertices, indices).translation(offset.x, offset.y, offset.z),
+    );
 
     Some(())
   }
@@ -244,7 +248,6 @@ fn attach_collider(
         if let Ok(mesh_handle) = mesh_query.get(*child) {
           let mesh = meshes.get(mesh_handle).unwrap();
           let child_transform = transform_query.get(*child).unwrap();
-          info!("{:#?}", child_transform);
           MeshWrapper::new(
             mesh,
             "Vertex_Position",

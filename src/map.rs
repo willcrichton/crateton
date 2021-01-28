@@ -16,19 +16,16 @@ fn init_map(
     return;
   }
 
-  let model = match model_query.iter().find(|(_, info)| info.name == "Duck") {
+  let model = match model_query
+    .iter()
+    .find(|(_, info)| info.name == "WebsiteTerrain")
+  {
     Some((model, _)) => model,
     None => {
       return;
     }
   };
   *done = true;
-
-  let position = Isometry3::from_parts(
-    Translation3::from(Vector3::new(0., 100., 0.)),
-    UnitQuaternion::identity(),
-  );
-  spawn_model_events.send(SpawnModelEvent { model, position });
 
   let lights = vec![LightBundle {
     transform: Transform::from_translation(Vec3::new(4.0, 5.0, 4.0)),
@@ -64,24 +61,34 @@ fn init_map(
     Name::new("ground"),
   ));
 
-  let box_ = PbrBundle {
-    mesh: cube.clone(),
-    material: materials.add(Color::rgb(1., 0., 0.3).into()),
-    transform: Transform::from_translation(Vec3::new(0., 7., 0.)),
-    // render_pipelines: RenderPipelines::from_pipelines(vec![
-    //   //RenderPipeline::new(FORWARD_PIPELINE_HANDLE.typed()),
-    //   RenderPipeline::new(pipeline_handle),
-    // ]),
-    ..Default::default()
-  };
-  commands.spawn(box_);
-  commands.with_bundle((
-    ColliderParams {
-      body_status: BodyStatus::Dynamic,
-      mass: 1.0,
-    },
-    Name::new("box"),
-  ));
+  let position = Isometry3::from_parts(
+    Translation3::from(Vector3::new(0., 0., 0.)),
+    UnitQuaternion::identity(),
+  );
+  spawn_model_events.send(SpawnModelEvent {
+    model,
+    position,
+    body_status: BodyStatus::Static,
+  });
+
+  // let box_ = PbrBundle {
+  //   mesh: cube.clone(),
+  //   material: materials.add(Color::rgb(1., 0., 0.3).into()),
+  //   transform: Transform::from_translation(Vec3::new(0., 7., 0.)),
+  //   // render_pipelines: RenderPipelines::from_pipelines(vec![
+  //   //   //RenderPipeline::new(FORWARD_PIPELINE_HANDLE.typed()),
+  //   //   RenderPipeline::new(pipeline_handle),
+  //   // ]),
+  //   ..Default::default()
+  // };
+  // commands.spawn(box_);
+  // commands.with_bundle((
+  //   ColliderParams {
+  //     body_status: BodyStatus::Dynamic,
+  //     mass: 1.0,
+  //   },
+  //   Name::new("box"),
+  // ));
 }
 
 fn load_map_assets(mut events: ResMut<Events<LoadModelEvent>>) {

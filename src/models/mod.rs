@@ -106,6 +106,7 @@ fn listen_for_load_models(
 pub struct SpawnModelEvent {
   pub model: Entity,
   pub position: Isometry3<f32>,
+  pub body_status: BodyStatus,
 }
 
 fn listen_for_spawn_models(
@@ -114,7 +115,11 @@ fn listen_for_spawn_models(
   query: Query<(&ModelInfo, &ModelParams, &Handle<Scene>)>,
 ) {
   for event in event_reader.iter() {
-    let SpawnModelEvent { model, position } = &event;
+    let SpawnModelEvent {
+      model,
+      position,
+      body_status,
+    } = &event;
     let (model_info, params, scene_handle) = query.get(*model).unwrap();
     // info!("initial position {:#?}", position);
     // info!("inital scale: {:#?}", params.scale);
@@ -133,7 +138,7 @@ fn listen_for_spawn_models(
         )),
         GlobalTransform::identity(),
         ColliderParams {
-          body_status: BodyStatus::Dynamic,
+          body_status: *body_status,
           mass: params.mass,
         },
         ModelInstance(*model),

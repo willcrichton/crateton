@@ -5,7 +5,10 @@ use crate::{
 };
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_inspector_egui::{Context, Inspectable, InspectableRegistry, WorldInspectorParams};
-use bevy_rapier3d::na::{Isometry3, Translation3, UnitQuaternion, Vector3};
+use bevy_rapier3d::{
+  na::{Isometry3, Translation3, UnitQuaternion, Vector3},
+  rapier::dynamics::BodyStatus,
+};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -85,7 +88,11 @@ fn spawn_ui_system(
             Translation3::from(translation.coords),
             UnitQuaternion::identity(),
           );
-          spawn_model_events.send(SpawnModelEvent { model, position });
+          spawn_model_events.send(SpawnModelEvent {
+            model,
+            position,
+            body_status: BodyStatus::Dynamic,
+          });
         }
       }
     });
