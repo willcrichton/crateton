@@ -14,9 +14,9 @@ jobs:
           override: true
           target: wasm32-unknown-unknown
       - run: pushd .. && git clone https://github.com/willcrichton/bevy && \
-        git clone https://github.com/willcrichton/winit/ && \
-        git clone https://github.com/willcrichton/bevy_egui/ && \
-        git clone https://github.com/willcrichton/bevy-inspector-egui/ && popd
+          git clone https://github.com/willcrichton/winit/ && \
+          git clone https://github.com/willcrichton/bevy_egui/ && \
+          git clone https://github.com/willcrichton/bevy-inspector-egui/ && popd
       - run: cargo install cargo-make
       - run: cargo make build-web --profile release
       - run: cp -r assets wasm
