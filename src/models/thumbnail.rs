@@ -21,8 +21,8 @@ pub fn load_thumbnail(
       Command::new("cargo")
         .args(&[
           "run",
-          "--bin",
-          "generate_thumbnail",
+          "--package",
+          "crateton_generate_thumbnail",
           "--",
           &model_info.path,
           &center.x.to_string(),

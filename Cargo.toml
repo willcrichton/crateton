@@ -5,9 +5,8 @@ authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
 edition = "2018"
 default-run = "crateton"
 
-# [workspace]
-# # members = ["crates/*"]
-# exclude = ["scripts/example_script"]
+[workspace]
+members = ["crates/*"]
 
 [features]
 default = ["bevy/default", "bevy/jpeg"]
@@ -36,7 +35,6 @@ bevy-inspector-egui = "0.3.0"
 serde = {version = "1", features=["derive"]}
 serde_json = "1"
 anyhow = "1.0"
-image = "0.23.12"
 itertools = "0.10"
 # bevy_skybox = "0.3.0"
 

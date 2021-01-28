@@ -1,5 +1,5 @@
 [package]
-name = "crateton_core"
+name = "crateton_generate_thumbnail"
 version = "0.1.0"
 authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
 edition = "2018"
@@ -8,7 +8,4 @@ edition = "2018"
 
 [dependencies]
 bevy = "0.4.0"
-bevy_rapier3d = "0.7.0"
-rapier3d = "0.4.2"
-ncollide3d = "0.26"
-nalgebra = "0.23"
+image = "0.23.12"

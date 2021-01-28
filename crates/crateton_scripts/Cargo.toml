@@ -8,6 +8,6 @@ edition = "2018"
 
 [dependencies]
 bevy = "0.4.0"
-crateton_core = { path = "../crateton_core" }
+# crateton_core = { path = "../crateton_core" }
 rustpython-vm = { git = "https://github.com/RustPython/RustPython" }
 rustpython-compiler = { git = "https://github.com/RustPython/RustPython" }

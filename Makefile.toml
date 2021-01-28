@@ -1,3 +1,6 @@
+[config]
+default_to_workspace = false
+
 [env]
 ENV_DIR = {source="${CARGO_MAKE_PROFILE}", default_value = "debug", mapping = {release = "release"}}
 

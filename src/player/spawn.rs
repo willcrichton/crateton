@@ -29,7 +29,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .current_entity()
     .unwrap();
   let rigid_body = RigidBodyBuilder::new_dynamic()
-    .translation(0., height, 5.5)
+    .translation(0., 0.5 * height, 5.5)
     .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false))
     .entity(body);
   let collider = ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
