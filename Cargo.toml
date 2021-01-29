@@ -1,12 +1,9 @@
-cargo-features = ["resolver"]
-
 [package]
 name = "crateton"
 version = "0.1.0"
 authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
 edition = "2018"
 default-run = "crateton"
-resolver = "2"
 
 [workspace]
 members = ["crates/*"]
