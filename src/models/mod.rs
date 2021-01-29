@@ -106,7 +106,7 @@ fn listen_for_load_models(
 pub struct SpawnModelEvent {
   pub model: Entity,
   pub position: Isometry3<f32>,
-  pub body_status: BodyStatus,
+  pub body_status: BodyStatus,  
 }
 
 fn listen_for_spawn_models(

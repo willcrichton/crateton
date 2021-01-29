@@ -34,7 +34,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .entity(body);
   let collider = ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
     .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
-    .density(1.0);
+    .density(1.0); 
   commands.with(rigid_body);
   commands.with(collider);
 

@@ -272,6 +272,7 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 name = "bevy"
 version = "0.4.0"
 dependencies = [
+ "bevy_dylib",
  "bevy_internal",
 ]
 
@@ -386,6 +387,13 @@ dependencies = [
  "bevy_log",
  "bevy_utils",
  "parking_lot",
+]
+
+[[package]]
+name = "bevy_dylib"
+version = "0.4.0"
+dependencies = [
+ "bevy_internal",
 ]
 
 [[package]]
@@ -1349,6 +1357,7 @@ dependencies = [
  "ncollide3d",
  "serde",
  "serde_json",
+ "web-sys",
  "winit",
 ]
 

@@ -2,5 +2,6 @@
     "files.associations": {
         "set": "cpp",
         "functional": "cpp"
-    }
+    },
+    "git.ignoreLimitWarning": true
 }

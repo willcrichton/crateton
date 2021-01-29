@@ -11,10 +11,10 @@ CARGO_RELEASE_ARGS = "--release"
 install_crate = {crate_name = "wasm-bindgen-cli", binary = "wasm-bindgen", test_arg="--help"}
 
 [tasks.cargo-build-web]
-args = ["build", "--target", "wasm32-unknown-unknown", "--features", "web", "--no-default-features", "@@split(CARGO_RELEASE_ARGS, )"]
+args = ["build", "--target-dir", "wasm/target", "--target", "wasm32-unknown-unknown", "--features", "web", "--no-default-features", "@@split(CARGO_RELEASE_ARGS, )"]
 command = "cargo"
 
 [tasks.build-web]
-args = ["--out-dir", "wasm/build", "--target", "web", "target/wasm32-unknown-unknown/${ENV_DIR}/crateton.wasm"]
+args = ["--out-dir", "wasm/build", "--target", "web", "wasm/target/wasm32-unknown-unknown/${ENV_DIR}/crateton.wasm"]
 command = "wasm-bindgen"
 dependencies = ["cargo-build-web", "wasm-bindgen-cli"]
