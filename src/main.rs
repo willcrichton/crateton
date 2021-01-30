@@ -20,11 +20,12 @@ fn main() {
     let window = web_sys::window().unwrap();
     let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
     let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
-    
+
     // Has to go before DefaultPlugins
     app.add_resource(WindowDescriptor {
       canvas: Some("#game".to_string()),
-      width, height,
+      width,
+      height,
       ..Default::default()
     });
   }

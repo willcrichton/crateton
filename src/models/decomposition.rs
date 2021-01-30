@@ -3,10 +3,7 @@ use crate::json::*;
 use crate::{physics::MeshWrapper, prelude::*};
 use bevy::transform::transform_propagate_system::transform_propagate_system;
 use bevy_rapier3d::na::Point3;
-use ncollide3d::{
-  bounding_volume::AABB,
-  procedural::{IndexBuffer, TriMesh as NTriMesh},
-};
+use bevy_rapier3d::rapier::parry::{bounding_volume::AABB, shape::TriMesh};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -15,21 +12,20 @@ use std::path::Path;
 pub struct MeshDecomposition(Vec<(Vec<Vec3>, Vec<UVec3>)>);
 
 impl MeshDecomposition {
-  pub fn to_trimesh(&self) -> Vec<NTriMesh<f32>> {
+  pub fn to_trimesh(&self) -> Vec<TriMesh> {
     self
       .0
       .iter()
       .map(|(coords, indices)| {
-        NTriMesh::new(
+        TriMesh::new(
           coords
             .iter()
             .map(|coord| Point3::from(coord.to_na_point3()))
             .collect(),
-          None,
-          None,
-          Some(IndexBuffer::Unified(
-            indices.iter().map(|idxs| idxs.to_na_point3()).collect(),
-          )),
+          indices
+            .iter()
+            .map(|idxs| idxs.to_na_point3().coords.into())
+            .collect(),
         )
       })
       .collect()
@@ -42,7 +38,7 @@ pub struct SceneDecomposition {
 }
 
 impl SceneDecomposition {
-  pub fn aabb(&self) -> AABB<f32> {
+  pub fn aabb(&self) -> AABB {
     let mut mins = Point3::new(f32::MAX, f32::MAX, f32::MAX);
     let mut maxs = Point3::new(f32::MIN, f32::MIN, f32::MIN);
     for mesh in self.meshes.values() {
@@ -73,18 +69,14 @@ fn compute_mesh_decomposition(mesh: MeshWrapper) -> MeshDecomposition {
       .compute_decomposition(None)
       .into_iter()
       .map(|trimesh| {
-        let indices = if let IndexBuffer::Unified(indices) = trimesh.indices {
-          indices
-            .into_iter()
-            .map(|point| UVec3::new(point.x, point.y, point.z))
-            .collect()
-        } else {
-          unimplemented!();
-        };
-
+        let indices = trimesh
+          .indices()
+          .iter()
+          .map(|&[x, y, z]| UVec3::new(x, y, z))
+          .collect();
         let coords = trimesh
-          .coords
-          .into_iter()
+          .vertices()
+          .iter()
           .map(|point| point.to_glam_vec3())
           .collect();
         (coords, indices)
@@ -141,6 +133,7 @@ pub fn load_decomp(
 
     let mesh_decomposition_path = model_info.mesh_decomposition_path();
     if !io.exists(&mesh_decomposition_path) {
+      info!("Computing decomposition for: {}", model_info.name);
       let scene_decomposition =
         compute_scene_decomposition(&mut scene.world, model_params, &meshes);
       let mut output_file =

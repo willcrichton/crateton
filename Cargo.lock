@@ -558,9 +558,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_rapier3d"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c11b4b13050eb907f824c92b598e418e75f710c50a3c35a2cd3f97f6f5afc0e1"
+checksum = "e5fc445c7cda1592ab9c2db7d3ef4e6dc341c31799af678ec13c01070b57894a"
 dependencies = [
  "bevy",
  "concurrent-queue",
@@ -1354,7 +1354,6 @@ dependencies = [
  "bevy_rapier3d",
  "bevy_webgl2",
  "itertools 0.10.0",
- "ncollide3d",
  "serde",
  "serde_json",
  "web-sys",
@@ -3011,9 +3010,9 @@ dependencies = [
 
 [[package]]
 name = "nalgebra"
-version = "0.23.2"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9bd52e9c9922d5702d5c2a105ceacc3c1206e781d3d130f4d2b7ad5f43c144b"
+checksum = "1a9002895a0de45e3cde58b36d0cf2f83249e7dba4a43ee64dafbf01bfd464ff"
 dependencies = [
  "approx",
  "generic-array 0.14.4",
@@ -3025,25 +3024,6 @@ dependencies = [
  "rand_distr",
  "simba",
  "typenum",
-]
-
-[[package]]
-name = "ncollide3d"
-version = "0.26.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fa86028ca1d3ac2ff5946c64e3f82fc6e9cdfaef2bef716f9fbf7e1559298ec"
-dependencies = [
- "approx",
- "bitflags",
- "downcast-rs",
- "either",
- "nalgebra",
- "num-traits",
- "petgraph",
- "simba",
- "slab",
- "slotmap",
- "smallvec",
 ]
 
 [[package]]
@@ -3412,6 +3392,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "parry3d"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdb2522f252566f695839c0280aa478abf6dd6360fd4e729810b6bc635e8cf4e"
+dependencies = [
+ "approx",
+ "bitflags",
+ "downcast-rs",
+ "either",
+ "nalgebra",
+ "num-derive",
+ "num-traits",
+ "rustc-hash",
+ "simba",
+ "slab",
+ "smallvec",
+]
+
+[[package]]
 name = "paste"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3737,9 +3736,9 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 
 [[package]]
 name = "rapier3d"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f175c71f3c2b140f17fd4683097d1b166cd253b1d8dc4cdf3467bd6281b9ef"
+checksum = "c0f32c214cc33e884f3e52ba38cdf81c402cc984840be1bc69cbb5e47aefcae7"
 dependencies = [
  "approx",
  "arrayvec",
@@ -3750,9 +3749,9 @@ dependencies = [
  "generational-arena",
  "instant",
  "nalgebra",
- "ncollide3d",
  "num-derive",
  "num-traits",
+ "parry3d",
  "rustc-hash",
  "simba",
  "vec_map",
@@ -4419,12 +4418,6 @@ dependencies = [
  "mach 0.3.2",
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "slotmap"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c46a3482db8f247956e464d783693ece164ca056e6e67563ee5505bdb86452cd"
 
 [[package]]
 name = "smallvec"

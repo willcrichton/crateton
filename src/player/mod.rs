@@ -19,7 +19,6 @@ impl Plugin for PlayerControllerPlugin {
     app
       //.add_plugin(bevy_skybox::SkyboxPlugin::from_image_file("images/skybox/sky2.png"))
       .add_startup_system(spawn::spawn_character.system())
-      .add_startup_system(spawn::init_hud.system())
       //
       // Detect keyboard + mouse events
       .add_event::<events::PitchEvent>()
@@ -66,5 +65,8 @@ impl Plugin for PlayerControllerPlugin {
         physics::controller_to_rapier_dynamic_force.system(),
       )
       .add_system_to_stage(APPLY_INPUT, physics::controller_to_fly.system());
+
+    #[cfg(not(target = "wasm32"))]
+    app.add_startup_system(spawn::init_hud.system());
   }
 }

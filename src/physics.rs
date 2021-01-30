@@ -9,18 +9,19 @@ use bevy::{
   scene::LatestInstance,
 };
 use bevy_rapier3d::{
-  na::{Matrix3x1, Point3, Vector3},
+  na::{Point3, Vector3},
   rapier::{
     dynamics::{BodyStatus, IntegrationParameters, RigidBody, RigidBodyBuilder},
     geometry::ColliderBuilder,
     math::Point,
+    parry::{
+      bounding_volume::AABB,
+      shape::TriMesh,
+      transformation::vhacd::{VHACDParameters, VHACD},
+    },
   },
 };
-use ncollide3d::{
-  bounding_volume::{HasBoundingVolume, AABB},
-  procedural::{IndexBuffer, TriMesh as NTrimesh},
-  shape::TriMesh as NSTriMesh,
-};
+
 use std::borrow::Cow;
 
 pub struct MeshWrapper<'a> {
@@ -30,10 +31,6 @@ pub struct MeshWrapper<'a> {
   scale: Vector3<f32>,
   offset: Vector3<f32>,
 }
-
-const HACD_ERROR: f32 = 0.10;
-const HACD_MIN_COMPONENTS: usize = 0;
-const HACD_EPSILON: f32 = 0.01;
 
 impl<'a> MeshWrapper<'a> {
   pub fn new(
@@ -52,12 +49,23 @@ impl<'a> MeshWrapper<'a> {
     }
   }
 
-  pub fn compute_decomposition(&self, decomp: Option<&MeshDecomposition>) -> Vec<NTrimesh<f32>> {
+  pub fn compute_decomposition(&self, decomp: Option<&MeshDecomposition>) -> Vec<TriMesh> {
     decomp.map(|decomp| decomp.to_trimesh()).unwrap_or_else(|| {
-      let trimesh = self.to_ncollide_trimesh();
-      let (decomp, _partition) =
-        ncollide3d::transformation::hacd(trimesh, HACD_ERROR, HACD_MIN_COMPONENTS);
-      decomp
+      let trimesh = TriMesh::new(self.vertices(), self.indices());
+      let vhacd = VHACD::decompose(
+        &VHACDParameters {
+          ..Default::default()
+        },
+        trimesh.vertices(),
+        trimesh.indices(),
+        false,
+      );
+      let hulls = vhacd.compute_convex_hulls(0);
+      hulls
+        .into_iter()
+        .filter(|(vertices, _)| vertices.len() > 0)
+        .map(|(vertices, indices)| TriMesh::new(vertices, indices))
+        .collect()
     })
   }
 
@@ -73,11 +81,11 @@ impl<'a> MeshWrapper<'a> {
       .into_iter()
       .map(|trimesh| {
         // Get AABB from trimesh
-        let aabb: AABB<_> = NSTriMesh::from(trimesh).local_bounding_volume();
+        let aabb = trimesh.local_aabb();
 
         // If HACD computes an AABB with zero extent in any dimension, collider will end up with zero volume
         // and hence zero mass. So we add a small epsilon
-        let half_extents = aabb.half_extents().add_scalar(HACD_EPSILON);
+        let half_extents = aabb.half_extents().add_scalar(0.01);
         let aabb = AABB::from_half_extents(aabb.center(), half_extents);
         let center = aabb.center();
 
@@ -114,10 +122,11 @@ impl<'a> MeshWrapper<'a> {
     let vertices = self.vertices();
     let indices = self.indices();
     let offset = &self.offset;
-    commands.insert_one(
-      entity,
+    commands.spawn((
+      Parent(entity),
       ColliderBuilder::trimesh(vertices, indices).translation(offset.x, offset.y, offset.z),
-    );
+      Name::new("collider child"),
+    ));
 
     Some(())
   }
@@ -160,31 +169,14 @@ impl<'a> MeshWrapper<'a> {
       .collect()
   }
 
-  fn indices(&self) -> Vec<Point<u32>> {
+  fn indices(&self) -> Vec<[u32; 3]> {
     match self.mesh.indices().as_ref().unwrap() {
       Indices::U32(indices) => indices
         .chunks(3)
-        .map(|c| Point::new(c[0], c[1], c[2]))
+        .map(|c| [c[0], c[1], c[2]])
         .collect::<Vec<_>>(),
       _ => unimplemented!(),
     }
-  }
-
-  fn to_ncollide_trimesh(&self) -> NTrimesh<f32> {
-    let normals = self.get_attribute(self.normal_attribute.clone());
-
-    NTrimesh::new(
-      self.vertices(),
-      Some(
-        normals
-          .clone()
-          .into_iter()
-          .map(|p| Matrix3x1::from_iterator(p.iter().cloned()))
-          .collect(),
-      ),
-      None,
-      Some(IndexBuffer::Unified(self.indices())),
-    )
   }
 }
 
@@ -278,7 +270,7 @@ fn attach_collider(
     let rigid_body = RigidBodyBuilder::new(body_status)
       .position(global_position)
       .entity(entity)
-      .mass(collider_params.mass, false);
+      .mass(collider_params.mass);
 
     commands.set_current_entity(entity);
     commands.with(rigid_body);
@@ -311,7 +303,7 @@ pub trait AABBExt {
   fn volume(&self) -> f32;
 }
 
-impl AABBExt for AABB<f32> {
+impl AABBExt for AABB {
   fn volume(&self) -> f32 {
     let half_extents = self.half_extents();
     half_extents.x * half_extents.y * half_extents.z * 8.0
@@ -321,6 +313,8 @@ impl AABBExt for AABB<f32> {
 // TODO: configure rapier to avoid clipping issues
 fn configure_rapier(mut integration_params: ResMut<IntegrationParameters>) {
   integration_params.ccd_on_penetration_enabled = true;
+  integration_params.max_ccd_position_iterations *= 2;
+  integration_params.max_ccd_substeps *= 2;
   integration_params.max_velocity_iterations *= 2;
   integration_params.max_position_iterations *= 2;
 }

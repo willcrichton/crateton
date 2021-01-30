@@ -30,11 +30,12 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
     .unwrap();
   let rigid_body = RigidBodyBuilder::new_dynamic()
     .translation(0., 0.5 * height, 5.5)
-    .principal_angular_inertia(Vector3::zeros(), Vector3::repeat(false))
+    .restrict_rotations(false, false, false)
+    //.principal_angular_inertia(Vector3::zeros())
     .entity(body);
   let collider = ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
     .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
-    .density(1.0); 
+    .density(1.0);
   commands.with(rigid_body);
   commands.with(collider);
 
@@ -80,9 +81,8 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
   let perspective = controller::Perspective::FirstPerson;
   let camera = commands
     .spawn(Camera3dBundle {
-      transform: perspective
-        .to_transform(),
-        //.looking_at(Vec3::new(0., height, 0.), Vec3::unit_y()),
+      transform: perspective.to_transform(),
+      //.looking_at(Vec3::new(0., height, 0.), Vec3::unit_y()),
       ..Default::default()
     })
     .with_bundle((

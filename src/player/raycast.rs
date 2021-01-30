@@ -59,13 +59,15 @@ pub fn compute_view_info(
   let direction = look.forward;
   view_info.ray = Ray::new(origin.to_na_point3(), direction.to_na_vector3());
   view_info.hit = rapier_pipeline
-    .cast_ray(
+    .cast_ray_and_get_normal(
       &colliders,
       &view_info.ray,
       f32::MAX,
+      true,
       InteractionGroups::all().with_mask(u16::MAX ^ RAPIER_PLAYER_GROUP),
     )
-    .map(|(collider_handle, collider, intersection)| {
+    .map(|(collider_handle, intersection)| {
+      let collider = colliders.get(collider_handle).unwrap();
       let entity = bodies.get(collider.parent()).unwrap().entity();
       HitInfo {
         collider_handle,
