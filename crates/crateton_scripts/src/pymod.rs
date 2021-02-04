@@ -27,6 +27,16 @@ pub mod crateton_pymod {
     };
   }
 
+  macro_rules! debug_impl {
+    ($id:ident) => {
+      impl fmt::Debug for $id {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+          f.write_str(stringify!($id))
+        }
+      }
+    };
+  }
+
   #[pyattr]
   #[pyclass(name, module = "crateton")]
   #[derive(Debug)]
@@ -109,12 +119,7 @@ pub mod crateton_pymod {
     inner: Mutex<CWorldInner>,
   }
   pyvalue_impl!(CWorld);
-
-  impl fmt::Debug for CWorld {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      f.write_str("CWorld")
-    }
-  }
+  debug_impl!(CWorld);
 
   #[pyimpl]
   impl CWorld {
@@ -147,17 +152,12 @@ pub mod crateton_pymod {
   #[pyclass(name, module = "crateton")]
   pub struct CStdout {}
   pyvalue_impl!(CStdout);
-
-  impl fmt::Debug for CStdout {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      f.write_str("CStdout")
-    }
-  }
+  debug_impl!(CStdout);
 
   #[pyimpl]
   impl CStdout {
     #[pymethod]
-    fn write(&self, data: PyStrRef, vm: &VirtualMachine) {
+    fn write(&self, data: PyStrRef) {
       info!("{}", data.as_ref());
     }
 
