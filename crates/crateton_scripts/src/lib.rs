@@ -15,13 +15,12 @@ use rustpython_vm::{
 };
 use vm::builtins::PyModule;
 
-use pymod::crateton_pymod::CWorld;
+use pymod::crateton_pymod::{CStdout, CWorld};
 
 mod pymod;
 
 const SCRIPT: &'static str = r#"
 print(world.entity_with_name("player body").transform().position().to_list())
-# print(world.entity_with_name("player body").transform().position().to_list())
 "#;
 
 fn run_scripts(world: &mut World, resources: &mut Resources) {
@@ -47,9 +46,9 @@ fn run_scripts(world: &mut World, resources: &mut Resources) {
         .compile(SCRIPT, compile::Mode::Exec, "<embedded>".to_owned())
         .unwrap();
       if let Err(exc) = vm.run_code_obj(code_obj, scope.clone()) {
-        // let mut error_text = Vec::new();
-        // vm::exceptions::write_exception(&mut error_text, vm, &exc).unwrap();
-        // warn!("Python error: {}", String::from_utf8(error_text).unwrap());
+        let mut error_text = Vec::new();
+        vm::exceptions::write_exception(&mut error_text, vm, &exc).unwrap();
+        warn!("Python error: {}", String::from_utf8(error_text).unwrap());
       }
 
       let (world, resources) = cworld.extract();
@@ -70,7 +69,11 @@ fn create_interpreter(_world: &mut World, resources: &mut Resources) {
   });
 
   vm.enter(|vm| {
+    // Make sure crateton is imported so constructors are initialized
     vm.import("crateton", None, 0).unwrap();
+
+    let stdout = (CStdout {}).into_ref(vm);
+    vm.set_attr(&vm.sys_module, "stdout", stdout).unwrap();
   });
 
   resources.insert_thread_local(Arc::new(vm));

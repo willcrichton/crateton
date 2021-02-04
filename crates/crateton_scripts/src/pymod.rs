@@ -2,19 +2,14 @@ use rustpython_vm::pymodule;
 
 #[pymodule]
 pub mod crateton_pymod {
+  use bevy::prelude::*;
+  use rustpython_derive::{pyclass, pyimpl, pymodule};
+  use rustpython_vm::{InitParameter, PySettings, VirtualMachine, builtins::{PyFloat, PyList, PyStr, PyStrRef, PyTypeRef}, compile, pyobject::{
+      ItemProtocol, PyClassImpl, PyObjectRef, PyRef, PyResult, PyValue, StaticType, TryIntoRef,
+    }};
   use std::{
     fmt, mem,
     sync::{Arc, Mutex},
-  };
-  use bevy::prelude::*;
-  use rustpython_derive::{pyclass, pyimpl, pymodule};
-  use rustpython_vm::{
-    builtins::{PyFloat, PyList, PyStr, PyTypeRef},
-    compile,
-    pyobject::{
-      ItemProtocol, PyClassImpl, PyObjectRef, PyRef, PyResult, PyValue, StaticType, TryIntoRef,
-    },
-    InitParameter, PySettings, VirtualMachine,
   };
 
   macro_rules! pyvalue_impl {
@@ -119,7 +114,9 @@ pub mod crateton_pymod {
   #[pyimpl]
   impl CWorld {
     pub fn new(world: World, resources: Resources) -> Self {
-      CWorld { inner: Mutex::new(CWorldInner { world, resources })}
+      CWorld {
+        inner: Mutex::new(CWorldInner { world, resources }),
+      }
     }
 
     pub fn extract(&self) -> (World, Resources) {
@@ -129,8 +126,7 @@ pub mod crateton_pymod {
     }
 
     #[pymethod]
-    fn entity_with_name(&self, name: PyObjectRef, vm: &VirtualMachine) -> PyResult<CEntity> {
-      let name: PyRef<PyStr> = name.try_into_ref(vm)?;
+    fn entity_with_name(&self, name: PyStrRef, vm: &VirtualMachine) -> PyResult<CEntity> {
       let name = name.as_ref();
       let inner = self.inner.lock().unwrap();
       inner
@@ -140,5 +136,27 @@ pub mod crateton_pymod {
         .map(|(entity, _)| CEntity { entity })
         .ok_or_else(|| vm.new_lookup_error(format!("Name {} does not exist", name)))
     }
+  }
+
+  #[pyattr]
+  #[pyclass(name, module = "crateton")]
+  pub struct CStdout {}
+  pyvalue_impl!(CStdout);
+
+  impl fmt::Debug for CStdout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      f.write_str("CStdout")
+    }
+  }
+
+  #[pyimpl]
+  impl CStdout {
+    #[pymethod]
+    fn write(&self, data: PyStrRef, vm: &VirtualMachine) {
+      info!("{}", data.as_ref());
+    }
+
+    #[pymethod]
+    fn flush(&self) {}
   }
 }
