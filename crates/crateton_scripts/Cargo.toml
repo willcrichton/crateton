@@ -6,12 +6,14 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["rustpython-vm/compile-parse"]
+web = ["rustpython-vm/freeze-stdlib", "rustpython-vm/compile-parse"]
+
 [dependencies]
 bevy = { version = "0.4.0", default-features = false }
-# pyo3 = {version = "0.13.1", features=["auto-initialize"]}
 take_mut = "0.2.2" 
-# crateton_core = { path = "../crateton_core" }
-rustpython-vm = { git = "https://github.com/RustPython/RustPython" }
-rustpython-compiler = { git = "https://github.com/RustPython/RustPython" }
+rustpython-vm = { git = "https://github.com/RustPython/RustPython", default-features = false }
 rustpython-derive = { git = "https://github.com/RustPython/RustPython" }
 rustpython-common = { git = "https://github.com/RustPython/RustPython" }
+#rustpython-bytecode = { git = "https://github.com/RustPython/RustPython" }

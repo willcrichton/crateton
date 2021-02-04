@@ -4,12 +4,16 @@ use std::{
 };
 
 use bevy::prelude::*;
-use rustpython_compiler as compiler;
 use rustpython_derive::{pyclass, pyimpl};
 use rustpython_vm as vm;
-use vm::{VirtualMachine, builtins::{PyFloat, PyList, PyStr, PyTypeRef}, pyobject::{
+use vm::{
+  compile,
+  builtins::{PyFloat, PyList, PyStr, PyTypeRef},
+  pyobject::{
     ItemProtocol, PyClassImpl, PyObjectRef, PyRef, PyResult, PyValue, StaticType, TryIntoRef,
-  }};
+  },
+  VirtualMachine,
+};
 
 macro_rules! pyvalue_impl {
   ($id:ident) => {
@@ -54,7 +58,9 @@ pyvalue_impl!(CTransform);
 impl CTransform {
   #[pymethod]
   fn position(&self, _vm: &VirtualMachine) -> CVec3 {
-    CVec3 { vec: self.transform.translation.clone() }
+    CVec3 {
+      vec: self.transform.translation.clone(),
+    }
   }
 }
 
@@ -119,7 +125,7 @@ impl CWorld {
 }
 
 const SCRIPT: &'static str = r#"
-print(world.entity_with_name("player body").transform().position().to_list());
+world.entity_with_name("player body").transform().position().to_list()
 # print(world.entity_with_name("player body").transform().position().to_list())
 "#;
 
@@ -150,7 +156,7 @@ fn run_scripts(world: &mut World, resources: &mut Resources) {
         .unwrap();
 
       let code_obj = vm
-        .compile(SCRIPT, compiler::Mode::Exec, "<embedded>".to_owned())
+        .compile(SCRIPT, compile::Mode::Exec, "<embedded>".to_owned())
         .unwrap();
       if let Err(e) = vm.run_code_obj(code_obj, scope.clone()) {
         vm::exceptions::print_exception(vm, e);
@@ -168,9 +174,12 @@ pub struct ScriptsPlugin;
 
 impl Plugin for ScriptsPlugin {
   fn build(&self, app: &mut AppBuilder) {
-    app
-      .init_thread_local_resource::<Arc<vm::Interpreter>>()
-      //.add_startup_system(setup_scripts.system())
-      .add_system(run_scripts.system());
+    vm::Interpreter::default().enter(|vm| {
+      info!("enter");
+    });
+    //app
+    //  .init_thread_local_resource::<Arc<vm::Interpreter>>();
+    //.add_startup_system(setup_scripts.system())
+    //.add_system(run_scripts.system());
   }
 }
