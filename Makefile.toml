@@ -8,7 +8,7 @@ ENV_DIR = {source="${CARGO_MAKE_PROFILE}", default_value = "debug", mapping = {r
 CARGO_RELEASE_ARGS = "--release"
 
 [tasks.wasm-bindgen-cli]
-install_crate = {crate_name = "wasm-bindgen-cli", binary = "wasm-bindgen", test_arg="--help", min_version="0.2.69"}
+install_crate = {crate_name = "wasm-bindgen-cli", binary = "wasm-bindgen", test_arg="--help"}
 
 [tasks.cargo-build-web]
 args = ["build", "--target-dir", "wasm/target", "--target", "wasm32-unknown-unknown", "--features", "web", "--no-default-features", "@@split(CARGO_RELEASE_ARGS, )"]
