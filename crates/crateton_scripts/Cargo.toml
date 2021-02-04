@@ -16,4 +16,3 @@ take_mut = "0.2.2"
 rustpython-vm = { git = "https://github.com/RustPython/RustPython", default-features = false }
 rustpython-derive = { git = "https://github.com/RustPython/RustPython" }
 rustpython-common = { git = "https://github.com/RustPython/RustPython" }
-#rustpython-bytecode = { git = "https://github.com/RustPython/RustPython" }
