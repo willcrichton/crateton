@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.4.0"
+bevy = { version = "0.4.0", default-features = false }
 # pyo3 = {version = "0.13.1", features=["auto-initialize"]}
 take_mut = "0.2.2" 
 # crateton_core = { path = "../crateton_core" }
