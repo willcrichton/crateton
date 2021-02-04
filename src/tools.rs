@@ -8,7 +8,7 @@ use crate::{
 use bevy::{
   input::mouse::{MouseMotion, MouseWheel},
   render::{
-    pipeline::{CullMode, PipelineDescriptor, RasterizationStateDescriptor},
+    pipeline::{CullMode, PipelineDescriptor, PrimitiveState},
     shader::ShaderStages,
   },
 };
@@ -212,10 +212,10 @@ fn tool_assets(
   asset_server: Res<AssetServer>,
 ) {
   outline_shader.0 = pipelines.add(PipelineDescriptor {
-    rasterization_state: Some(RasterizationStateDescriptor {
+    primitive: PrimitiveState {
       cull_mode: CullMode::Front,
       ..Default::default()
-    }),
+    },
     ..PipelineDescriptor::default_config(ShaderStages {
       vertex: asset_server.load("shaders/silhouette.vert"),
       fragment: Some(asset_server.load("shaders/silhouette.frag")),

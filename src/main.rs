@@ -22,7 +22,7 @@ fn main() {
     let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
 
     // Has to go before DefaultPlugins
-    app.add_resource(WindowDescriptor {
+    app.insert_resource(WindowDescriptor {
       canvas: Some("#game".to_string()),
       width,
       height,
@@ -31,7 +31,7 @@ fn main() {
   }
 
   app
-    .add_resource(Msaa { samples: 4 })
+    .insert_resource(Msaa { samples: 4 })
     // Bevy core plugins
     .add_plugins(DefaultPlugins)
     // Internal plugins
@@ -43,6 +43,8 @@ fn main() {
     .add_plugin(ui::UiPlugin)
     .add_plugin(json::JsonPlugin)
     .add_plugin(models::ModelsPlugin);
+
+  app.add_plugin(crateton_scripts::ScriptsPlugin);
 
   // External plugins
   // app.add_plugin(bevy_rapier3d::render::RapierRenderPlugin);

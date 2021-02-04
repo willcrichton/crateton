@@ -123,6 +123,7 @@ fn debugger_system(world: &mut World, resources: &mut Resources) {
           ..Default::default()
         },
         &Context {
+          id: None,
           resources: Some(resources),
           world: None,
         },

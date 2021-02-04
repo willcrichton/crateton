@@ -1,11 +1,8 @@
 use super::{controller, look};
 use crate::prelude::*;
-use bevy_rapier3d::{
-  na::Vector3,
-  rapier::{
-    dynamics::RigidBodyBuilder,
-    geometry::{ColliderBuilder, InteractionGroups},
-  },
+use bevy_rapier3d::rapier::{
+  dynamics::RigidBodyBuilder,
+  geometry::{ColliderBuilder, InteractionGroups},
 };
 
 pub struct Player {
@@ -80,7 +77,7 @@ pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>
 
   let perspective = controller::Perspective::FirstPerson;
   let camera = commands
-    .spawn(Camera3dBundle {
+    .spawn(PerspectiveCameraBundle {
       transform: perspective.to_transform(),
       //.looking_at(Vec3::new(0., height, 0.), Vec3::unit_y()),
       ..Default::default()
@@ -110,7 +107,7 @@ pub fn init_hud(
   mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
   commands
-    .spawn(CameraUiBundle::default())
+    .spawn(UiCameraBundle::default())
     .with(Name::new("camera ui"))
     .spawn(NodeBundle {
       style: Style {

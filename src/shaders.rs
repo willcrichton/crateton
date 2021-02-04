@@ -29,7 +29,7 @@ fn handle_shader_events(
         let mesh_handle = mesh_query.get(entity).unwrap();
         let mesh = meshes.get(mesh_handle).unwrap();
         PipelineSpecialization {
-          vertex_buffer_descriptor: mesh.get_vertex_buffer_descriptor(),
+          vertex_buffer_layout: mesh.get_vertex_buffer_layout(),
           ..Default::default()
         }
       };

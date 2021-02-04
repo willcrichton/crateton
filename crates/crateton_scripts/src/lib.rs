@@ -1,34 +1,38 @@
 use bevy::prelude::*;
-
 use rustpython_compiler as compiler;
+use rustpython_derive::pyclass;
 use rustpython_vm as vm;
 
-use vm::pyobject::PyResult;
+#[pyclass(name, module = "crateton")]
+struct CWorld {
+  world: World,
+  resources: Resources,
+}
 
-fn setup_scripts() {
-  vm::Interpreter::default()
-    .enter::<_, PyResult<()>>(|vm| {
-      let scope = vm.new_scope_with_builtins();
+const SCRIPT: &'static str = r#"
+print("Hi");
+# print(world.entity_with_name("player body").transform().position().to_list())
+"#;
 
-      let code_obj = vm
-        .compile(
-          r#"print("Hello World!")"#,
-          compiler::compile::Mode::Exec,
-          "<embedded>".to_owned(),
-        )
-        .map_err(|err| vm.new_syntax_error(&err))?;
-
-      vm.run_code_obj(code_obj, scope)?;
-
-      Ok(())
-    })
-    .unwrap();
+fn run_scripts(world: &mut World, resources: &mut Resources) {
+  let interpreter = resources.get_thread_local_mut::<vm::Interpreter>().unwrap();
+  interpreter.enter(|vm| {
+    let scope = vm.new_scope_with_builtins();
+    //scope.globals.set_item("")
+    let code_obj = vm
+      .compile(SCRIPT, compiler::Mode::Exec, "<embedded>".to_owned())
+      .unwrap();
+    vm.run_code_obj(code_obj, scope.clone()).unwrap();
+  });
 }
 
 pub struct ScriptsPlugin;
 
 impl Plugin for ScriptsPlugin {
   fn build(&self, app: &mut AppBuilder) {
-    app.add_startup_system(setup_scripts.system());
+    app
+      .init_thread_local_resource::<vm::Interpreter>()
+      //.add_startup_system(setup_scripts.system())
+      .add_system(run_scripts.system());
   }
 }

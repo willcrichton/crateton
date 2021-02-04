@@ -142,7 +142,7 @@ fn listen_for_spawn_models(
           mass: params.mass,
         },
         ModelInstance(*model),
-        Name::new(&model_info.name),
+        Name::new(model_info.name.clone()),
       ))
       .with_children(|parent| {
         parent.spawn_scene(scene_handle.clone());
@@ -154,7 +154,7 @@ pub struct ModelsPlugin;
 impl Plugin for ModelsPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
-      .add_resource(ModelCategory(Entity::from_bits(0)))
+      .insert_resource(ModelCategory(Entity::from_bits(0)))
       .add_event::<SpawnModelEvent>()
       .add_event::<LoadModelEvent>()
       .add_startup_system(model_init.system())

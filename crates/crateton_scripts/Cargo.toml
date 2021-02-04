@@ -8,6 +8,10 @@ edition = "2018"
 
 [dependencies]
 bevy = "0.4.0"
+# pyo3 = {version = "0.13.1", features=["auto-initialize"]}
+take_mut = "0.2.2" 
 # crateton_core = { path = "../crateton_core" }
 rustpython-vm = { git = "https://github.com/RustPython/RustPython" }
 rustpython-compiler = { git = "https://github.com/RustPython/RustPython" }
+rustpython-derive = { git = "https://github.com/RustPython/RustPython" }
+rustpython-common = { git = "https://github.com/RustPython/RustPython" }
