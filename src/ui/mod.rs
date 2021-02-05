@@ -2,8 +2,9 @@ use crate::prelude::*;
 use bevy_egui::EguiPlugin;
 use std::collections::HashMap;
 
-mod terminal;
+mod debugger;
 mod spawnmenu;
+mod terminal;
 
 #[derive(Default)]
 pub struct InternedTextures {
@@ -26,13 +27,38 @@ impl InternedTextures {
   }
 }
 
+#[derive(Default)]
+pub struct UiWindowManager {
+  showing: isize,
+}
+
+impl UiWindowManager {
+  pub fn set_showing(&mut self, showing: bool) {
+    self.showing += if showing { 1 } else { -1 };
+  }
+
+  pub fn is_showing(&self) -> bool {
+    self.showing > 0
+  }
+}
+
+fn ui_window_system(manager: Res<UiWindowManager>, mut windows: ResMut<Windows>) {
+  let window = windows.get_primary_mut().unwrap();
+  let showing = manager.is_showing();
+  window.set_cursor_lock_mode(!showing);
+  window.set_cursor_visibility(showing);
+}
+
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
       .add_plugin(EguiPlugin)
       .init_resource::<InternedTextures>()
-      .add_plugin(terminal::TerminalPlugin)
-      .add_plugin(spawnmenu::SpawnmenuPlugin);
+      .init_resource::<UiWindowManager>()
+      .add_system(ui_window_system.system())
+      .add_plugin(debugger::DebuggerPlugin)
+      .add_plugin(spawnmenu::SpawnmenuPlugin)
+      .add_plugin(terminal::TerminalPlugin);
   }
 }

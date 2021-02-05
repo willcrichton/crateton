@@ -1,45 +1,73 @@
-use crate::{player::controller::CharacterController, prelude::*};
-use bevy_egui::{egui, EguiContext};
-use bevy_inspector_egui::{Context, Inspectable, InspectableRegistry, WorldInspectorParams};
+use crate::{
+  prelude::*,
+  scripts::{pymod::ScriptOutputEvent, RunScriptEvent},
+};
+use bevy_egui::{
+  egui::{self, widgets},
+  EguiContext,
+};
+use egui::{Align, Layout, TextStyle};
+use itertools::Itertools;
 
-fn terminal_system(world: &mut World, resources: &mut Resources) {  
-  let keyboard_input = resources.get::<Input<KeyCode>>().unwrap();
-  let character_controller = resources.get::<CharacterController>().unwrap();
-  let mut windows = resources.get_mut::<Windows>().unwrap();
-  let window = windows.get_primary_mut().unwrap();
+use super::UiWindowManager;
 
-  let key = character_controller.input_map.key_toggle_world_visualizer;
-  let show = keyboard_input.pressed(key);
-  if keyboard_input.just_pressed(key) || keyboard_input.just_released(key) {
-    window.set_cursor_lock_mode(!show);
-    window.set_cursor_visibility(show);
+#[derive(Default)]
+struct TerminalState {
+  show: bool,
+  input: String,
+  logs: Vec<String>,
+}
+
+fn terminal_system(
+  keyboard_input: Res<Input<KeyCode>>,
+  egui_context: Res<EguiContext>,
+  mut window_manager: ResMut<UiWindowManager>,
+  mut state: Local<TerminalState>,
+  mut run_script_events: ResMut<Events<RunScriptEvent>>,
+  mut script_output_events: EventReader<ScriptOutputEvent>,
+  windows: Res<Windows>,
+) {
+  if keyboard_input.just_pressed(KeyCode::Grave) {
+    state.show = !state.show;
+    window_manager.set_showing(state.show);
   }
 
-  if show {
-    let egui_context = resources.get::<EguiContext>().unwrap();
+  for event in script_output_events.iter() {
+    state.logs.push(event.output.clone());
+  }
+
+  if state.show {
     let ctx = &egui_context.ctx;
-    egui::Window::new("Debugger").scroll(true).show(ctx, |ui| {
-      world.ui(
-        ui,
-        WorldInspectorParams {
-          cluster_by_archetype: false,
-          ..Default::default()
-        },
-        &Context {
-          id: None,
-          resources: Some(resources),
-          world: None,
-        },
-      );
-    });
+    let window = windows.get_primary().unwrap();
+    let height = window.height();
+
+    egui::Window::new("Terminal")
+      .default_height(height - 100.)
+      .show(ctx, |ui| {
+        ui.with_layout(Layout::bottom_up(Align::left()), |ui| {
+          let input_field = ui
+            .add(widgets::TextEdit::singleline(&mut state.input).text_style(TextStyle::Monospace));
+          if input_field.lost_kb_focus {
+            let code = state.input.clone();
+            state.logs.push(format!(">>> {}\n", code));
+            state.input = String::new();
+
+            run_script_events.send(RunScriptEvent { code });
+          }
+
+          ui.add(
+            widgets::Label::new(state.logs.iter().join(""))
+              .multiline(true)
+              .monospace(),
+          );
+        });
+      });
   }
 }
 
 pub struct TerminalPlugin;
 impl Plugin for TerminalPlugin {
   fn build(&self, app: &mut AppBuilder) {
-    app
-      .init_resource::<InspectableRegistry>()
-      .add_system(terminal_system.system());
+    app.add_system(terminal_system.system());
   }
 }

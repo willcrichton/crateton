@@ -1,3 +1,5 @@
+use crate::ui::UiWindowManager;
+
 // system that converts delta axis events into pitch and yaw
 use super::{
   controller::CharacterController,
@@ -61,11 +63,10 @@ pub fn input_to_look(
   mut yaw_events: ResMut<Events<YawEvent>>,
   mut look_events: ResMut<Events<LookEvent>>,
   mut look_delta_events: ResMut<Events<LookDeltaEvent>>,
-  windows: Res<Windows>,
+  ui_window_manager: Res<UiWindowManager>,
   controller: Res<CharacterController>,
 ) {
-  let window = windows.get_primary().unwrap();
-  if !window.cursor_locked() {
+  if ui_window_manager.is_showing() {
     return;
   }
 

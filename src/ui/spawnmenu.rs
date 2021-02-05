@@ -10,7 +10,7 @@ use bevy_rapier3d::{
   rapier::dynamics::BodyStatus,
 };
 
-use super::InternedTextures;
+use super::{InternedTextures, UiWindowManager};
 
 fn load_assets(
   mut egui_context: ResMut<EguiContext>,
@@ -26,24 +26,22 @@ fn load_assets(
 fn spawn_ui_system(
   controller: Res<CharacterController>,
   keyboard_input: Res<Input<KeyCode>>,
-  mut windows: ResMut<Windows>,
   mut egui_context: ResMut<EguiContext>,
   interned_textures: Res<InternedTextures>,
   mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
   model_query: Query<(Entity, &ModelInfo, &SceneDecomposition)>,
   view_info: Res<ViewInfo>,
+  mut ui_window_manager: ResMut<UiWindowManager>,
 ) {
-  let ctx = &mut egui_context.ctx;
-  let window = windows.get_primary_mut().unwrap();
-  if keyboard_input.just_pressed(controller.input_map.key_show_ui) {
-    window.set_cursor_lock_mode(false);
-    window.set_cursor_visibility(true);
-  } else if keyboard_input.just_released(controller.input_map.key_show_ui) {
-    window.set_cursor_lock_mode(true);
-    window.set_cursor_visibility(false);
+  let key = controller.input_map.key_show_ui;
+  if keyboard_input.just_pressed(key) {
+    ui_window_manager.set_showing(true);
+  } else if keyboard_input.just_released(key) {
+    ui_window_manager.set_showing(false);
   }
 
-  if keyboard_input.pressed(controller.input_map.key_show_ui) {
+  if keyboard_input.pressed(key) {
+    let ctx = &mut egui_context.ctx;
     egui::Window::new("Spawn window").show(ctx, |ui| {
       for (model, model_info, decomp) in model_query.iter() {
         let texture_id = if let Some(texture_id) = interned_textures.get_egui_id(&model_info.name) {

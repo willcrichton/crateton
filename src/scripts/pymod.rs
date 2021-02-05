@@ -1,7 +1,12 @@
 use rustpython_vm::pymodule;
 
+pub struct ScriptOutputEvent {
+  pub output: String,
+}
+
 #[pymodule]
 pub mod crateton_pymod {
+  use super::ScriptOutputEvent;
   use bevy::prelude::*;
   use rustpython_vm::{
     builtins::{PyFloat, PyList, PyStrRef, PyTypeRef},
@@ -159,8 +164,15 @@ pub mod crateton_pymod {
   #[pyimpl]
   impl CStdout {
     #[pymethod]
-    fn write(&self, data: PyStrRef) {
-      info!("{}", data.as_ref());
+    fn write(&self, data: PyStrRef, vm: &VirtualMachine) {
+      let world = CWorld::fetch(vm);
+      let mut events = world
+        .resources()
+        .get_mut::<Events<ScriptOutputEvent>>()
+        .unwrap();
+      events.send(ScriptOutputEvent {
+        output: data.as_ref().to_owned(),
+      });
     }
 
     #[pymethod]
