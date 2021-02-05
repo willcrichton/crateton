@@ -3,34 +3,14 @@ use crate::{
   player::{controller::CharacterController, raycast::ViewInfo},
   prelude::*,
 };
-use bevy_egui::{egui, EguiContext, EguiPlugin};
-use bevy_inspector_egui::{Context, Inspectable, InspectableRegistry, WorldInspectorParams};
+
+use bevy_egui::{egui, EguiContext};
 use bevy_rapier3d::{
   na::{Isometry3, Translation3, UnitQuaternion, Vector3},
   rapier::dynamics::BodyStatus,
 };
-use std::collections::HashMap;
 
-#[derive(Default)]
-struct InternedTextures {
-  textures: HashMap<String, u64>,
-}
-
-impl InternedTextures {
-  pub fn get_egui_id(&self, name: &str) -> Option<u64> {
-    self.textures.get(name).cloned()
-  }
-
-  pub fn add_texture(&mut self, name: String) -> u64 {
-    let n = self.textures.len() as u64;
-    self.textures.insert(name, n);
-    n
-  }
-
-  pub fn null_texture(&self) -> u64 {
-    u64::MAX
-  }
-}
+use super::InternedTextures;
 
 fn load_assets(
   mut egui_context: ResMut<EguiContext>,
@@ -99,48 +79,11 @@ fn spawn_ui_system(
   }
 }
 
-fn debugger_system(world: &mut World, resources: &mut Resources) {
-  let keyboard_input = resources.get::<Input<KeyCode>>().unwrap();
-  let character_controller = resources.get::<CharacterController>().unwrap();
-  let mut windows = resources.get_mut::<Windows>().unwrap();
-  let window = windows.get_primary_mut().unwrap();
-
-  let key = character_controller.input_map.key_toggle_world_visualizer;
-  let show = keyboard_input.pressed(key);
-  if keyboard_input.just_pressed(key) || keyboard_input.just_released(key) {
-    window.set_cursor_lock_mode(!show);
-    window.set_cursor_visibility(show);
-  }
-
-  if show {
-    let egui_context = resources.get::<EguiContext>().unwrap();
-    let ctx = &egui_context.ctx;
-    egui::Window::new("Debugger").scroll(true).show(ctx, |ui| {
-      world.ui(
-        ui,
-        WorldInspectorParams {
-          cluster_by_archetype: false,
-          ..Default::default()
-        },
-        &Context {
-          id: None,
-          resources: Some(resources),
-          world: None,
-        },
-      );
-    });
-  }
-}
-
-pub struct UiPlugin;
-impl Plugin for UiPlugin {
+pub struct SpawnmenuPlugin;
+impl Plugin for SpawnmenuPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
-      .add_plugin(EguiPlugin)
-      .init_resource::<InspectableRegistry>()
-      .init_resource::<InternedTextures>()
       .add_system(spawn_ui_system.system())
-      .add_system(debugger_system.system())
       .add_system_to_stage(stage::POST_UPDATE, load_assets.system());
   }
 }
