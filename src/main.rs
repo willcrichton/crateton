@@ -7,6 +7,7 @@ mod models;
 mod physics;
 mod player;
 mod prelude;
+mod scripts;
 mod shaders;
 mod tools;
 mod ui;
@@ -42,9 +43,8 @@ fn main() {
     .add_plugin(map::MapPlugin)
     .add_plugin(ui::UiPlugin)
     .add_plugin(json::JsonPlugin)
-    .add_plugin(models::ModelsPlugin);
-
-  app.add_plugin(crateton_scripts::ScriptsPlugin);
+    .add_plugin(models::ModelsPlugin)
+    .add_plugin(scripts::ScriptsPlugin);
 
   // External plugins
   // app.add_plugin(bevy_rapier3d::render::RapierRenderPlugin);

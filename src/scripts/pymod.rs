@@ -4,8 +4,8 @@ use rustpython_vm::pymodule;
 pub mod crateton_pymod {
   use bevy::prelude::*;
   use rustpython_vm::{
-    pyclass, pyimpl,
     builtins::{PyFloat, PyList, PyStrRef, PyTypeRef},
+    pyclass, pyimpl,
     pyobject::{ItemProtocol, PyRef, PyResult, PyValue, StaticType, TryIntoRef},
     VirtualMachine,
   };

@@ -9,8 +9,57 @@ default-run = "crateton"
 members = ["crates/*"]
 
 [features]
-default = ["bevy/default", "bevy/jpeg", "bevy/dynamic"]
-web = ["bevy/png", "bevy/jpeg", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf", "bevy_webgl2", "web-sys", "crateton_scripts/web"]
+default = [
+  "bevy/default", "bevy/jpeg", "bevy/dynamic", 
+  "rustpython-vm/compile-parse"
+]
+
+web = [
+  "bevy/png", "bevy/jpeg", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf", 
+  "bevy_webgl2", "web-sys", 
+  "rustpython-vm/freeze-stdlib", "rustpython-vm/compile-parse"
+]
+
+[dependencies]
+bevy = {version = "0.4.0", default-features = false}
+
+# Physics
+bevy_rapier3d = "0.8.0"
+
+# Ui
+bevy_egui = "0.1.2"
+bevy-inspector-egui = {git = "https://github.com/jakobhellermann/bevy-inspector-egui/", branch = "bevy-0.5"}
+
+# Web 
+web-sys = {version = "0.3.46", optional = true}
+bevy_webgl2 = {git = "https://github.com/rparrett/bevy_webgl2", branch = "update-for-bevy-master", optional=true}
+
+# Scripts 
+rustpython-vm = { git = "https://github.com/RustPython/RustPython", default-features = false }
+rustpython-common = { git = "https://github.com/RustPython/RustPython" }
+
+# Misc
+serde = {version = "1", features=["derive"]}
+serde_json = "1"
+anyhow = "1.0"
+itertools = "0.10"
+
+[patch.crates-io]
+bevy = { path = "../bevy" }
+winit = { path = "../winit" } # until my PR gets merged and bevy updated
+bevy_egui = { path = "../bevy_egui" } # until gets updated to bevy-0.5
+bevy_winit = { path = "../bevy/crates/bevy_winit" } # only needed for bevy_egui
+bevy_rapier3d = { path = "../bevy_rapier/bevy_rapier3d" } # until gets updated to bevy-0.5
+
+# Only needed for bevy_egui patch
+[patch."https://github.com/jakobhellermann/bevy_egui"]
+bevy_egui = { path = "../bevy_egui" }
+
+[patch."https://github.com/bevyengine/bevy"]
+bevy = { path = "../bevy" }
+
+
+###### Performance knobs
 
 [profile.release]
 debug = true
@@ -22,34 +71,3 @@ opt-level = 3
 opt-level = 2
 debug = true
 debug-assertions = true
-
-[dependencies]
-bevy = {version = "0.4.0", default-features = false}
-bevy_rapier3d = "0.8.0"
-winit = {version = "0.24.0"}
-#bevy_webgl2 = {version = "0.4.0", optional = true}
-bevy_webgl2 = {git = "https://github.com/rparrett/bevy_webgl2", branch = "update-for-bevy-master", optional=true}
-bevy_egui = "0.1.2"
-bevy-inspector-egui = {git = "https://github.com/jakobhellermann/bevy-inspector-egui/", branch = "bevy-0.5"}
-serde = {version = "1", features=["derive"]}
-serde_json = "1"
-anyhow = "1.0"
-itertools = "0.10"
-web-sys = {version = "0.3.46", optional = true}
-crateton_scripts = { path = "crates/crateton_scripts" }
-
-# crateton_core = { path = "crates/crateton_core" }
-# crateton_scripts = { path = "crates/crateton_scripts" }
-
-[patch.crates-io]
-bevy = { path = "../bevy" }
-winit = { path = "../winit" }
-bevy_winit = { path = "../bevy/crates/bevy_winit" } # only needed for bevy_egui
-bevy_egui = { path = "../bevy_egui" }
-bevy_rapier3d = { path = "../bevy_rapier/bevy_rapier3d" }
-
-[patch."https://github.com/jakobhellermann/bevy_egui"]
-bevy_egui = { path = "../bevy_egui" }
-
-[patch."https://github.com/bevyengine/bevy"]
-bevy = { path = "../bevy" }

@@ -1377,12 +1377,12 @@ dependencies = [
  "bevy_egui",
  "bevy_rapier3d",
  "bevy_webgl2",
- "crateton_scripts",
  "itertools 0.10.0",
+ "rustpython-common",
+ "rustpython-vm",
  "serde",
  "serde_json",
  "web-sys",
- "winit",
 ]
 
 [[package]]
@@ -1391,17 +1391,6 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "image",
-]
-
-[[package]]
-name = "crateton_scripts"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "rustpython-common",
- "rustpython-derive",
- "rustpython-vm",
- "take_mut",
 ]
 
 [[package]]
@@ -4684,12 +4673,6 @@ checksum = "14e039b5850edc6e974a22c8ea37ba9dc4de7909c2572eff65b2f943bd5dc984"
 dependencies = [
  "syn",
 ]
-
-[[package]]
-name = "take_mut"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f764005d11ee5f36500a149ace24e00e3da98b0158b3e2d53a7495660d3f4d60"
 
 [[package]]
 name = "tar"
