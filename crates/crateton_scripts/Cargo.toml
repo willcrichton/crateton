@@ -12,7 +12,5 @@ web = ["rustpython-vm/freeze-stdlib", "rustpython-vm/compile-parse"]
 
 [dependencies]
 bevy = { version = "0.4.0", default-features = false }
-take_mut = "0.2.2" 
 rustpython-vm = { git = "https://github.com/RustPython/RustPython", default-features = false }
-rustpython-derive = { git = "https://github.com/RustPython/RustPython" }
 rustpython-common = { git = "https://github.com/RustPython/RustPython" }

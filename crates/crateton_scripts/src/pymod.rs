@@ -3,19 +3,13 @@ use rustpython_vm::pymodule;
 #[pymodule]
 pub mod crateton_pymod {
   use bevy::prelude::*;
-  use rustpython_derive::{pyclass, pyimpl, pymodule};
   use rustpython_vm::{
-    builtins::{PyFloat, PyList, PyStr, PyStrRef, PyTypeRef},
-    compile,
-    pyobject::{
-      ItemProtocol, PyClassImpl, PyObjectRef, PyRef, PyResult, PyValue, StaticType, TryIntoRef,
-    },
-    InitParameter, PySettings, VirtualMachine,
+    pyclass, pyimpl,
+    builtins::{PyFloat, PyList, PyStrRef, PyTypeRef},
+    pyobject::{ItemProtocol, PyRef, PyResult, PyValue, StaticType, TryIntoRef},
+    VirtualMachine,
   };
-  use std::{
-    fmt, mem,
-    sync::{Arc, Mutex},
-  };
+  use std::{fmt, ptr::NonNull};
 
   macro_rules! pyvalue_impl {
     ($id:ident) => {
@@ -90,13 +84,8 @@ pub mod crateton_pymod {
   impl CEntity {
     #[pymethod]
     fn transform(&self, vm: &VirtualMachine) -> PyResult<CTransform> {
-      let world: PyRef<CWorld> = vm
-        .current_globals()
-        .get_item("world", vm)?
-        .try_into_ref(vm)?;
-      let world = world.inner.lock().unwrap();
-      world
-        .world
+      CWorld::fetch(vm)
+        .world()
         .get::<Transform>(self.entity)
         .map(|transform| CTransform {
           transform: *transform,
@@ -107,40 +96,53 @@ pub mod crateton_pymod {
     }
   }
 
-  #[derive(Default)]
-  struct CWorldInner {
-    world: World,
-    resources: Resources,
-  }
-
   #[pyattr]
   #[pyclass(name, module = "crateton")]
   pub struct CWorld {
-    inner: Mutex<CWorldInner>,
+    world: NonNull<World>,
+    resources: NonNull<Resources>,
   }
   pyvalue_impl!(CWorld);
   debug_impl!(CWorld);
 
   #[pyimpl]
   impl CWorld {
-    pub fn new(world: World, resources: Resources) -> Self {
+    pub fn fetch(vm: &VirtualMachine) -> PyRef<Self> {
+      vm.current_globals()
+        .get_item("world", vm)
+        .unwrap()
+        .try_into_ref(vm)
+        .unwrap()
+    }
+
+    pub fn new(world: &mut World, resources: &mut Resources) -> Self {
       CWorld {
-        inner: Mutex::new(CWorldInner { world, resources }),
+        world: NonNull::new(world).unwrap(),
+        resources: NonNull::new(resources).unwrap(),
       }
     }
 
-    pub fn extract(&self) -> (World, Resources) {
-      let mut inner = self.inner.lock().unwrap();
-      let CWorldInner { world, resources } = mem::replace(&mut *inner, Default::default());
-      (world, resources)
+    fn world(&self) -> &World {
+      unsafe { self.world.as_ref() }
+    }
+
+    fn world_mut(&mut self) -> &mut World {
+      unsafe { self.world.as_mut() }
+    }
+
+    fn resources(&self) -> &Resources {
+      unsafe { self.resources.as_ref() }
+    }
+
+    fn resources_mut(&mut self) -> &mut Resources {
+      unsafe { self.resources.as_mut() }
     }
 
     #[pymethod]
     fn entity_with_name(&self, name: PyStrRef, vm: &VirtualMachine) -> PyResult<CEntity> {
       let name = name.as_ref();
-      let inner = self.inner.lock().unwrap();
-      inner
-        .world
+      self
+        .world()
         .query::<(Entity, &Name)>()
         .find(|(_, name_component)| name == name_component.as_str())
         .map(|(entity, _)| CEntity { entity })
