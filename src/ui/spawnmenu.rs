@@ -32,7 +32,7 @@ fn spawn_ui_system(
   model_query: Query<(Entity, &ModelInfo, &SceneDecomposition)>,
   view_info: Res<ViewInfo>,
   mut ui_window_manager: ResMut<UiWindowManager>,
-  mut ui_lock: Local<Option<UiLock>>
+  mut ui_lock: Local<Option<UiLock>>,
 ) {
   let key = controller.input_map.key_show_ui;
   if keyboard_input.just_pressed(key) {

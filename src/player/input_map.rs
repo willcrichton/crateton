@@ -16,6 +16,7 @@ pub struct InputMap {
   pub key_toggle_world_visualizer: KeyCode,
   pub key_rotate_toolgun: KeyCode,
   pub key_lock_rotation: KeyCode,
+  pub key_toggle_terminal: KeyCode,
 
   pub invert_y: bool,
 }
@@ -36,6 +37,7 @@ impl Default for InputMap {
       key_toggle_world_visualizer: KeyCode::LAlt,
       key_rotate_toolgun: KeyCode::E,
       key_lock_rotation: KeyCode::LShift,
+      key_toggle_terminal: KeyCode::Grave,
       invert_y: false,
     }
   }

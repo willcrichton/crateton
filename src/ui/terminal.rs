@@ -1,4 +1,7 @@
-use super::{UiLock, UiWindowManager, editor::{self, CodeEditor}};
+use super::{
+  editor::{self, CodeEditor},
+  UiLock, UiWindowManager,
+};
 use crate::{
   prelude::*,
   scripts::{pymod::ScriptOutputEvent, RunScriptEvent},
@@ -81,6 +84,7 @@ fn editor(
 }
 
 fn terminal_system(
+  controller: Res<CharacterController>,
   keyboard_input: Res<Input<KeyCode>>,
   egui_context: Res<EguiContext>,
   mut window_manager: ResMut<UiWindowManager>,
@@ -91,11 +95,15 @@ fn terminal_system(
   windows: Res<Windows>,
   editor_resources: Res<EditorResources>,
 ) {
-  let just_pressed = keyboard_input.just_pressed(KeyCode::Grave);
+  let just_pressed = keyboard_input.just_pressed(controller.input_map.key_toggle_terminal);
   if just_pressed {
     match ui_lock.take() {
-      Some(lock) => { window_manager.unshow(lock); }
-      None => { *ui_lock = window_manager.try_show(); }
+      Some(lock) => {
+        window_manager.unshow(lock);
+      }
+      None => {
+        *ui_lock = window_manager.try_show();
+      }
     };
   }
 

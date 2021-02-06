@@ -57,7 +57,6 @@ impl UiWindowManager {
   }
 }
 
-
 fn ui_window_system(manager: Res<UiWindowManager>, mut windows: ResMut<Windows>) {
   let window = windows.get_primary_mut().unwrap();
   let showing = manager.is_showing();
