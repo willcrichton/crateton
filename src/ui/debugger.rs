@@ -11,8 +11,14 @@ fn debugger_system(world: &mut World, resources: &mut Resources) {
 
   let key = character_controller.input_map.key_toggle_world_visualizer;
   let show = keyboard_input.pressed(key);
-  if keyboard_input.just_pressed(key) || keyboard_input.just_released(key) {
-    ui_window_manager.set_showing(show);
+  if keyboard_input.just_pressed(key) {
+    if ui_window_manager.is_showing() {
+      return;
+    } else {
+      ui_window_manager.set_showing(true);
+    }
+  } else if keyboard_input.just_released(key) {
+    ui_window_manager.set_showing(false);
   }
 
   if show {

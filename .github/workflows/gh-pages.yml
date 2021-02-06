@@ -9,7 +9,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
           target: wasm32-unknown-unknown
       - run: pushd .. && git clone https://github.com/willcrichton/bevy && git clone -b cursor-grab https://github.com/willcrichton/winit/ && git clone https://github.com/willcrichton/bevy_egui/ && git clone https://github.com/willcrichton/bevy_rapier/ && popd
