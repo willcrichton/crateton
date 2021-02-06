@@ -1,7 +1,4 @@
-use super::{
-  editor::{self, CodeEditor},
-  UiWindowManager,
-};
+use super::{UiLock, UiWindowManager, editor::{self, CodeEditor}};
 use crate::{
   prelude::*,
   scripts::{pymod::ScriptOutputEvent, RunScriptEvent},
@@ -13,7 +10,6 @@ use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
 
 #[derive(Default)]
 struct TerminalState {
-  show: bool,
   input: String,
   logs: Vec<String>,
   code: String,
@@ -88,6 +84,7 @@ fn terminal_system(
   keyboard_input: Res<Input<KeyCode>>,
   egui_context: Res<EguiContext>,
   mut window_manager: ResMut<UiWindowManager>,
+  mut ui_lock: Local<Option<UiLock>>,
   mut state: Local<TerminalState>,
   mut run_script_events: ResMut<Events<RunScriptEvent>>,
   mut script_output_events: EventReader<ScriptOutputEvent>,
@@ -96,15 +93,17 @@ fn terminal_system(
 ) {
   let just_pressed = keyboard_input.just_pressed(KeyCode::Grave);
   if just_pressed {
-    state.show = !state.show;
-    window_manager.set_showing(state.show);
+    match ui_lock.take() {
+      Some(lock) => { window_manager.unshow(lock); }
+      None => { *ui_lock = window_manager.try_show(); }
+    };
   }
 
   for event in script_output_events.iter() {
     state.logs.push(event.output.clone());
   }
 
-  if state.show {
+  if ui_lock.is_some() {
     let ctx = &egui_context.ctx;
     let window = windows.get_primary().unwrap();
     let height = window.height();

@@ -10,7 +10,7 @@ use bevy_rapier3d::{
   rapier::dynamics::BodyStatus,
 };
 
-use super::{InternedTextures, UiWindowManager};
+use super::{InternedTextures, UiLock, UiWindowManager};
 
 fn load_assets(
   mut egui_context: ResMut<EguiContext>,
@@ -32,12 +32,14 @@ fn spawn_ui_system(
   model_query: Query<(Entity, &ModelInfo, &SceneDecomposition)>,
   view_info: Res<ViewInfo>,
   mut ui_window_manager: ResMut<UiWindowManager>,
+  mut ui_lock: Local<Option<UiLock>>
 ) {
   let key = controller.input_map.key_show_ui;
   if keyboard_input.just_pressed(key) {
-    ui_window_manager.set_showing(true);
-  } else if keyboard_input.just_released(key) {
-    ui_window_manager.set_showing(false);
+    *ui_lock = ui_window_manager.try_show();
+  } else if keyboard_input.just_released(key) && ui_lock.is_some() {
+    let lock = ui_lock.take().unwrap();
+    ui_window_manager.unshow(lock);
   }
 
   if keyboard_input.pressed(key) {

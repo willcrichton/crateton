@@ -33,19 +33,30 @@ impl InternedTextures {
 
 #[derive(Default)]
 pub struct UiWindowManager {
-  showing: isize,
+  showing: bool,
 }
 
+pub struct UiLock;
+
 impl UiWindowManager {
-  pub fn set_showing(&mut self, showing: bool) {
-    self.showing += if showing { 1 } else { -1 };
-    debug_assert!(self.showing >= 0);
+  pub fn try_show(&mut self) -> Option<UiLock> {
+    if self.showing {
+      None
+    } else {
+      self.showing = true;
+      Some(UiLock)
+    }
+  }
+
+  pub fn unshow(&mut self, _lock: UiLock) {
+    self.showing = false;
   }
 
   pub fn is_showing(&self) -> bool {
-    self.showing > 0
+    self.showing
   }
 }
+
 
 fn ui_window_system(manager: Res<UiWindowManager>, mut windows: ResMut<Windows>) {
   let window = windows.get_primary_mut().unwrap();
