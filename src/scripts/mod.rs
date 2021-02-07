@@ -1,10 +1,13 @@
+use std::marker::PhantomData;
+
 use bevy::{app::ManualEventReader, prelude::*};
 use rustpython_vm::{
-  self as vm, compile,
-  pyobject::{ItemProtocol, PyValue},
+  self as vm,
+  compile::Mode,
+  pyobject::{IntoPyObject, ItemProtocol, PyValue},
   InitParameter, PySettings,
 };
-use vm::{scope::Scope, Interpreter};
+use vm::{builtins::PyNone, scope::Scope, Interpreter};
 
 use pymod::{
   crateton_pymod::{CStdout, CWorld},
@@ -36,7 +39,7 @@ fn run_scripts(_world: &mut World, resources: &mut Resources) {
 
   py.interpreter.enter(|vm| {
     let run_code = |code: &str| -> anyhow::Result<()> {
-      let code_obj = vm.compile(code, compile::Mode::Exec, "<embedded>".to_owned())?;
+      let code_obj = vm.compile(code, Mode::Exec, "<embedded>".to_owned())?;
       let output = vm.run_code_obj(code_obj, py.scope.clone());
       match output {
         Ok(_) => Ok(()),
@@ -68,7 +71,7 @@ fn create_interpreter(world: &mut World, resources: &mut Resources) {
   });
 
   let scope = interpreter.enter(|vm| {
-    // Make sure crateton is imported so constructors are initialized
+    // Make sure crateton is imported so constructors are initialized, ie cworld.into_ref doesn't panic
     vm.import(module_name, None, 0).unwrap();
 
     let stdout = (CStdout {}).into_ref(vm);
@@ -83,6 +86,19 @@ fn create_interpreter(world: &mut World, resources: &mut Resources) {
       .set_item("world", cworld.clone().into(), vm)
       .unwrap();
 
+    // Reset SIGINT handler to default so Ctrl-C exits application instead of getting caught by Python
+    const RESET_SIGINT: &'static str = r#"
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+    "#;
+    if let Err(exc) = vm.run_code_obj(
+      vm.compile(RESET_SIGINT, Mode::Exec, "<embedded>".to_owned())
+        .unwrap(),
+      scope.clone(),
+    ) {
+      vm::exceptions::print_exception(vm, exc);
+    }
+
     scope
   });
 
@@ -90,7 +106,6 @@ fn create_interpreter(world: &mut World, resources: &mut Resources) {
 }
 
 pub struct ScriptsPlugin;
-
 impl Plugin for ScriptsPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app

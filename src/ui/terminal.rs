@@ -2,7 +2,11 @@ use super::{
   editor::{self, CodeEditor},
   UiLock, UiWindowManager,
 };
-use crate::{player::controller::CharacterController, prelude::*, scripts::{pymod::ScriptOutputEvent, RunScriptEvent}};
+use crate::{
+  player::controller::CharacterController,
+  prelude::*,
+  scripts::{pymod::ScriptOutputEvent, RunScriptEvent},
+};
 use bevy_egui::{egui, EguiContext};
 use egui::{widgets, Align, Key, Layout, ScrollArea, TextStyle, Ui};
 use itertools::Itertools;
