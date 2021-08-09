@@ -5,7 +5,7 @@ use bevy_rapier3d::{
 };
 
 fn init_map(
-  commands: &mut Commands,
+  mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
   mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
@@ -33,8 +33,8 @@ fn init_map(
   }];
   for (i, light) in lights.into_iter().enumerate() {
     commands
-      .spawn(light)
-      .with(Name::new(format!("light {}", i)));
+      .spawn_bundle(light)
+      .insert(Name::new(format!("light {}", i)));
   }
 
   let ground_size = 200.1;
@@ -52,8 +52,7 @@ fn init_map(
     material: materials.add(color.into()),
     ..Default::default()
   };
-  commands.spawn(ground);
-  commands.with_bundle((
+  commands.spawn_bundle(ground).insert_bundle((
     ColliderParams {
       body_status: BodyStatus::Static,
       mass: 10000.0,
@@ -70,25 +69,6 @@ fn init_map(
     position,
     body_status: BodyStatus::Static,
   });
-
-  // let box_ = PbrBundle {
-  //   mesh: cube.clone(),
-  //   material: materials.add(Color::rgb(1., 0., 0.3).into()),
-  //   transform: Transform::from_translation(Vec3::new(0., 7., 0.)),
-  //   // render_pipelines: RenderPipelines::from_pipelines(vec![
-  //   //   //RenderPipeline::new(FORWARD_PIPELINE_HANDLE.typed()),
-  //   //   RenderPipeline::new(pipeline_handle),
-  //   // ]),
-  //   ..Default::default()
-  // };
-  // commands.spawn(box_);
-  // commands.with_bundle((
-  //   ColliderParams {
-  //     body_status: BodyStatus::Dynamic,
-  //     mass: 1.0,
-  //   },
-  //   Name::new("box"),
-  // ));
 }
 
 fn load_map_assets(mut events: ResMut<Events<LoadModelEvent>>) {

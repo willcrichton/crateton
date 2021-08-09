@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::ui::UiWindowManager;
 
 // system that converts delta axis events into pitch and yaw
@@ -5,7 +6,8 @@ use super::{
   controller::CharacterController,
   events::{LookDeltaEvent, LookEvent, PitchEvent, YawEvent},
 };
-use bevy::{input::mouse::MouseMotion, prelude::*};
+
+use bevy::input::mouse::MouseMotion;
 
 #[derive(Clone, Copy)]
 pub struct LookDirection {
@@ -59,10 +61,10 @@ pub fn input_to_look(
   keyboard_input: Res<Input<KeyCode>>,
   mut settings: ResMut<MouseSettings>,
   mut mouse_motion: EventReader<MouseMotion>,
-  mut pitch_events: ResMut<Events<PitchEvent>>,
-  mut yaw_events: ResMut<Events<YawEvent>>,
-  mut look_events: ResMut<Events<LookEvent>>,
-  mut look_delta_events: ResMut<Events<LookDeltaEvent>>,
+  mut pitch_events: EventWriter<PitchEvent>,
+  mut yaw_events: EventWriter<YawEvent>,
+  mut look_events: EventWriter<LookEvent>,
+  mut look_delta_events: EventWriter<LookDeltaEvent>,
   ui_window_manager: Res<UiWindowManager>,
   controller: Res<CharacterController>,
 ) {
@@ -90,9 +92,9 @@ pub fn input_to_look(
     if settings.yaw_pitch_roll.y < -PITCH_BOUND {
       settings.yaw_pitch_roll.y = -PITCH_BOUND;
     }
-    look_delta_events.send(LookDeltaEvent::new(&delta.extend(0.0)));
-    look_events.send(LookEvent::new(&settings.yaw_pitch_roll));
-    pitch_events.send(PitchEvent::new(settings.yaw_pitch_roll.y));
-    yaw_events.send(YawEvent::new(settings.yaw_pitch_roll.x));
+    look_delta_events.send(LookDeltaEvent(delta.extend(0.0)));
+    look_events.send(LookEvent(settings.yaw_pitch_roll));
+    pitch_events.send(PitchEvent(settings.yaw_pitch_roll.y));
+    yaw_events.send(YawEvent(settings.yaw_pitch_roll.x));
   }
 }

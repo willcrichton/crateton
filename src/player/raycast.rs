@@ -3,18 +3,17 @@ use super::{
   spawn::{Player, RAPIER_PLAYER_GROUP},
 };
 use crate::prelude::*;
-use bevy::prelude::*;
 use bevy_rapier3d::{
   na::{Point3, Vector3},
+  prelude::*,
   rapier::{
-    dynamics::RigidBodySet,
-    geometry::{ColliderHandle, ColliderSet, InteractionGroups, Ray, RayIntersection},
+    geometry::{ColliderHandle, InteractionGroups, Ray, RayIntersection},
     pipeline::QueryPipeline,
   },
 };
 
+#[derive(Debug)]
 pub struct HitInfo {
-  pub collider_handle: ColliderHandle,
   pub intersection: RayIntersection,
   pub entity: Entity,
 }
@@ -47,10 +46,11 @@ pub fn compute_view_info(
   look_direction_query: Query<&LookDirection>,
   global_transform_query: Query<&GlobalTransform>,
   rapier_pipeline: Res<QueryPipeline>,
-  colliders: Res<ColliderSet>,
-  bodies: ResMut<RigidBodySet>,
+  collider_query: QueryPipelineColliderComponentsQuery,
+  collider_parent_query: Query<&ColliderParent>,
   mut view_info: ResMut<ViewInfo>,
 ) {
+  let colliders = QueryPipelineColliderComponentsSet(&collider_query);
   let look = look_direction_query
     .get_component::<LookDirection>(player.camera)
     .expect("Failed to get LookDirection from Entity");
@@ -64,13 +64,16 @@ pub fn compute_view_info(
       &view_info.ray,
       f32::MAX,
       true,
-      InteractionGroups::all().with_mask(u16::MAX ^ RAPIER_PLAYER_GROUP),
+      InteractionGroups::all().with_filter(u32::MAX ^ RAPIER_PLAYER_GROUP),
+      None,
     )
     .map(|(collider_handle, intersection)| {
-      let collider = colliders.get(collider_handle).unwrap();
-      let entity = bodies.get(collider.parent()).unwrap().entity();
+      let collider_entity = collider_handle.entity();
+      let entity = match collider_parent_query.get(collider_entity) {
+        Ok(parent) => parent.handle.entity(),
+        _ => collider_entity,
+      };
       HitInfo {
-        collider_handle,
         intersection,
         entity,
       }

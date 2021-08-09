@@ -2,7 +2,7 @@ use super::{ModelInfo, ModelParams};
 use crate::json::*;
 use crate::{physics::MeshWrapper, prelude::*};
 use bevy::transform::transform_propagate_system::transform_propagate_system;
-use bevy_rapier3d::na::Point3;
+use bevy_rapier3d::na::{point, Point3};
 use bevy_rapier3d::rapier::parry::{bounding_volume::AABB, shape::TriMesh};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -39,8 +39,8 @@ pub struct SceneDecomposition {
 
 impl SceneDecomposition {
   pub fn aabb(&self) -> AABB {
-    let mut mins = Point3::new(f32::MAX, f32::MAX, f32::MAX);
-    let mut maxs = Point3::new(f32::MIN, f32::MIN, f32::MIN);
+    let mut mins = point![f32::MAX, f32::MAX, f32::MAX];
+    let mut maxs = point![f32::MIN, f32::MIN, f32::MIN];
     for mesh in self.meshes.values() {
       for (coords, _) in &mesh.0 {
         for coord in coords {
@@ -55,12 +55,11 @@ impl SceneDecomposition {
 }
 
 fn update_global_transform(world: &mut World) {
-  let mut resources = Resources::default();
   let mut update_stage = SystemStage::serial();
   update_stage.add_system(transform_propagate_system.system());
   let mut schedule = Schedule::default();
   schedule.add_stage("update", update_stage);
-  schedule.initialize_and_run(world, &mut resources);
+  schedule.run_once(world);
 }
 
 fn compute_mesh_decomposition(mesh: MeshWrapper) -> MeshDecomposition {
@@ -111,7 +110,7 @@ fn compute_scene_decomposition(
 }
 
 pub fn load_decomp(
-  commands: &mut Commands,
+  mut commands: Commands,
   mut query: Query<
     (Entity, &ModelInfo, &ModelParams, &Handle<Scene>),
     Without<LoadingJsonTag<SceneDecomposition>>,

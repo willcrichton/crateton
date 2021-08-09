@@ -1,9 +1,7 @@
 use super::{controller, look};
 use crate::prelude::*;
-use bevy_rapier3d::rapier::{
-  dynamics::RigidBodyBuilder,
-  geometry::{ColliderBuilder, InteractionGroups},
-};
+use bevy::render::camera::PerspectiveProjection;
+use bevy_rapier3d::{prelude::*, rapier::geometry::InteractionGroups};
 
 pub struct Player {
   pub body: Entity,
@@ -11,105 +9,116 @@ pub struct Player {
   pub camera: Entity,
 }
 
-pub const RAPIER_PLAYER_GROUP: u16 = 1;
+pub const RAPIER_PLAYER_GROUP: u32 = 1;
 
-pub fn spawn_character(commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>) {
+pub fn spawn_character(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
   let height = 3.0;
   let head_scale = 0.3;
-  let body = commands
-    .spawn((
+
+  let rigid_body = RigidBodyBundle {
+    body_type: BodyStatus::Dynamic,
+    position: vector![0., height * 3., 5.5].into(),    
+    mass_properties: RigidBodyMassProps {
+      flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
+      ..Default::default()
+    },
+    ..Default::default()
+  };
+
+  let collider = ColliderBundle {
+    shape: ColliderShape::cuboid(1.0, height/2., 1.0),
+    mass_properties: ColliderMassProps::Density(1.0),
+    flags: ColliderFlags {
+      collision_groups: InteractionGroups::all().with_memberships(RAPIER_PLAYER_GROUP),
+      ..Default::default()
+    },
+    ..Default::default()
+  };
+
+  let mut body = commands
+    .spawn_bundle((
       controller::BodyTag,
       Transform::identity(),
       GlobalTransform::identity(),
       Name::new("player body"),
     ))
-    .current_entity()
-    .unwrap();
-  let rigid_body = RigidBodyBuilder::new_dynamic()
-    .translation(0., 0.5 * height, 5.5)
-    .restrict_rotations(false, false, false)
-    //.principal_angular_inertia(Vector3::zeros())
-    .entity(body);
-  let collider = ColliderBuilder::cuboid(1.0, 0.5 * height, 1.0)
-    .collision_groups(InteractionGroups::all().with_groups(RAPIER_PLAYER_GROUP))
-    .density(1.0);
-  commands.with(rigid_body);
-  commands.with(collider);
+    .insert_bundle(rigid_body)
+    .insert_bundle(collider)
+    .insert(ColliderPositionSync::Discrete)
+    .insert(ColliderDebugRender::with_id(1))
+    .id();
 
-  let cube = meshes.add(Mesh::from(shape::Cube { size: 2.0 }));
+  let cube = meshes.add(Mesh::from(bevy::prelude::shape::Cube { size: 2.0 }));
   let body_model = commands
-    .spawn(PbrBundle {
+    .spawn_bundle(PbrBundle {
       mesh: cube,
       transform: Transform::from_matrix(Mat4::from_scale_rotation_translation(
-        Vec3::new(1.0, 0.5 * height, 1.0),
+        Vec3::new(1.0, height/2., 1.0),
         Quat::identity(),
         Vec3::zero(),
       )),
       ..Default::default()
     })
-    .with(Name::new("player body model"))
-    .current_entity()
-    .unwrap();
+    .insert(Name::new("player body model"))
+    .id();
 
   let yaw = commands
-    .spawn((
+    .spawn_bundle((
       controller::YawTag,
       Transform::identity(),
       GlobalTransform::identity(),
       Name::new("player yaw"),
     ))
-    .current_entity()
-    .unwrap();
+    .id();
 
-  let head = commands
-    .spawn((
-      controller::HeadTag,
-      GlobalTransform::identity(),
-      Transform::from_matrix(Mat4::from_scale_rotation_translation(
-        Vec3::one(),
-        Quat::from_rotation_y(0.),
-        Vec3::new(0.0, 0.5 * head_scale + height - 1.695, 0.0),
-      )),
-      Name::new("player head"),
-    ))
-    .current_entity()
-    .unwrap();
+  let head = commands.spawn_bundle((
+    controller::HeadTag,
+    GlobalTransform::identity(),
+    Transform::from_matrix(Mat4::from_scale_rotation_translation(
+      Vec3::one(),
+      Quat::from_rotation_y(0.),
+      Vec3::new(0.0, 0.5 * head_scale + height - 1.695, 0.0),
+    )),
+    Name::new("player head"),
+  )).id();
 
   let perspective = controller::Perspective::FirstPerson;
   let camera = commands
-    .spawn(PerspectiveCameraBundle {
+    .spawn_bundle(PerspectiveCameraBundle {
       transform: perspective.to_transform(),
       //.looking_at(Vec3::new(0., height, 0.), Vec3::unit_y()),
       ..Default::default()
     })
-    .with_bundle((
+    .insert_bundle((
       look::LookDirection::default(),
       controller::CameraTag,
       perspective,
       Name::new("camera 3d"),
       //bevy_skybox::SkyboxCamera
     ))
-    .current_entity()
-    .unwrap();
+    .id();
 
   commands
-    .insert_one(body, look::LookEntity(camera))
-    .push_children(body, &[yaw])
-    .push_children(yaw, &[body_model, head])
-    .push_children(head, &[camera]);
+    .entity(body)
+    .insert(look::LookEntity(camera))
+    .push_children(&[yaw]);
+  commands.entity(yaw).push_children(&[body_model, head]);
+  commands.entity(head).push_children(&[camera]);
 
   commands.insert_resource(Player { body, head, camera });
 }
 
 pub fn init_hud(
-  commands: &mut Commands,
+  mut commands: Commands,
   asset_server: Res<AssetServer>,
   mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
   commands
-    .spawn(UiCameraBundle::default())
-    .with(Name::new("camera ui"))
-    .spawn(NodeBundle {
+    .spawn_bundle(UiCameraBundle::default())
+    .insert(Name::new("camera ui"));
+
+  commands
+    .spawn_bundle(NodeBundle {
       style: Style {
         size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
         position_type: PositionType::Absolute,
@@ -120,10 +129,10 @@ pub fn init_hud(
       material: materials.add(Color::NONE.into()),
       ..Default::default()
     })
-    .with(Name::new("crosshairs"))
+    .insert(Name::new("crosshairs"))
     .with_children(|parent| {
       // bevy logo (image)
-      parent.spawn(ImageBundle {
+      parent.spawn_bundle(ImageBundle {
         style: Style {
           size: Size::new(Val::Px(30.0), Val::Auto),
           ..Default::default()
@@ -133,3 +142,13 @@ pub fn init_hud(
       });
     });
 }
+
+// pub fn update_camera(
+//   windows: Res<Windows>,
+//   player: Res<Player>,
+//   mut query: Query<&mut PerspectiveProjection>
+// ) {
+//   let window = windows.get_primary().unwrap();
+//   let mut projection = query.get_mut(player.camera).unwrap();
+//   projection.aspect_ratio = window.width() as f32 / window.height() as f32;
+// }

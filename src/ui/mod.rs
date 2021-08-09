@@ -1,14 +1,14 @@
 use crate::prelude::*;
 use bevy_egui::{
   egui::{FontDefinitions, FontFamily, TextStyle},
-  EguiContext, EguiPlugin,
+  EguiContext, EguiPlugin, EguiSystem,
 };
 use std::collections::HashMap;
 
 mod debugger;
-mod editor;
+// mod editor;
 mod spawnmenu;
-mod terminal;
+// mod terminal;
 
 #[derive(Default)]
 pub struct InternedTextures {
@@ -65,7 +65,7 @@ fn ui_window_system(manager: Res<UiWindowManager>, mut windows: ResMut<Windows>)
 }
 
 fn configure_fonts(mut egui_context: ResMut<EguiContext>) {
-  let ctx = &mut egui_context.ctx;
+  let ctx = egui_context.ctx();
   let mut fonts = FontDefinitions::default();
   fonts
     .family_and_size
@@ -82,10 +82,12 @@ impl Plugin for UiPlugin {
       .init_resource::<InternedTextures>()
       .init_resource::<UiWindowManager>()
       .add_system(ui_window_system.system())
-      .add_startup_system(configure_fonts.system())
+      // .add_startup_system(configure_fonts.system().after(EguiSystem::BeginFrame))
+
       // Individual UI plugins
       .add_plugin(debugger::DebuggerPlugin)
       .add_plugin(spawnmenu::SpawnmenuPlugin)
-      .add_plugin(terminal::TerminalPlugin);
+      // .add_plugin(terminal::TerminalPlugin);
+      ;
   }
 }

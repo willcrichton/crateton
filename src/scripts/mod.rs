@@ -1,11 +1,9 @@
+use crate::prelude::*;
 use std::marker::PhantomData;
 
-use bevy::{app::ManualEventReader, prelude::*};
+use bevy::app::ManualEventReader;
 use rustpython_vm::{
-  self as vm,
-  compile::Mode,
-  pyobject::{IntoPyObject, ItemProtocol, PyValue},
-  InitParameter, PySettings,
+  self as vm, compile::Mode, InitParameter, IntoPyObject, ItemProtocol, PySettings, PyValue,
 };
 use vm::{builtins::PyNone, scope::Scope, Interpreter};
 
@@ -32,10 +30,18 @@ pub struct RunScriptEvent {
 #[derive(Default)]
 struct RunScriptEventReader(ManualEventReader<RunScriptEvent>);
 
-fn run_scripts(_world: &mut World, resources: &mut Resources) {
-  let py = resources.get_thread_local::<PyInterpreter>().unwrap();
-  let mut event_reader = resources.get_mut::<RunScriptEventReader>().unwrap();
-  let events = resources.get::<Events<RunScriptEvent>>().unwrap();
+fn run_scripts(world: &mut World) {
+  let (py, mut event_reader, events) = unsafe {
+    (
+      world
+        .get_non_send_resource_unchecked_mut::<PyInterpreter>()
+        .unwrap(),
+      world
+        .get_resource_unchecked_mut::<RunScriptEventReader>()
+        .unwrap(),
+      world.get_resource::<Events<RunScriptEvent>>().unwrap(),
+    )
+  };
 
   py.interpreter.enter(|vm| {
     let run_code = |code: &str| -> anyhow::Result<()> {
@@ -44,9 +50,9 @@ fn run_scripts(_world: &mut World, resources: &mut Resources) {
       match output {
         Ok(_) => Ok(()),
         Err(exc) => {
-          let mut error_text = Vec::new();
+          let mut error_text = String::new();
           vm::exceptions::write_exception(&mut error_text, vm, &exc).unwrap();
-          Err(anyhow::Error::msg(String::from_utf8(error_text).unwrap()))
+          Err(anyhow::Error::msg(error_text))
         }
       }
     };
@@ -59,7 +65,7 @@ fn run_scripts(_world: &mut World, resources: &mut Resources) {
   });
 }
 
-fn create_interpreter(world: &mut World, resources: &mut Resources) {
+fn create_interpreter(world: &mut World) {
   let module_name = "crateton";
   let interpreter = vm::Interpreter::new_with_init(PySettings::default(), |vm| {
     vm.add_native_module(
@@ -77,7 +83,7 @@ fn create_interpreter(world: &mut World, resources: &mut Resources) {
     let stdout = (CStdout {}).into_ref(vm);
     vm.set_attr(&vm.sys_module, "stdout", stdout).unwrap();
 
-    let cworld = CWorld::new(world, resources);
+    let cworld = CWorld::new(world);
     let cworld = cworld.into_ref(vm);
 
     let scope = vm.new_scope_with_builtins();
@@ -102,15 +108,15 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
     scope
   });
 
-  resources.insert_thread_local(PyInterpreter { interpreter, scope });
+  world.insert_non_send(PyInterpreter { interpreter, scope });
 }
 
 pub struct ScriptsPlugin;
 impl Plugin for ScriptsPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
-      .add_startup_system(create_interpreter.system())
-      .add_system(run_scripts.system())
+      .add_startup_system(create_interpreter.exclusive_system())
+      .add_system(run_scripts.exclusive_system())
       .init_resource::<RunScriptEventReader>()
       .add_event::<RunScriptEvent>()
       .add_event::<ScriptOutputEvent>();

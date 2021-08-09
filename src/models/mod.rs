@@ -3,10 +3,10 @@ use bevy_rapier3d::{na::Isometry3, rapier::dynamics::BodyStatus};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-mod decomposition;
+// mod decomposition;
 mod thumbnail;
 
-pub use decomposition::{MeshDecomposition, SceneDecomposition};
+// pub use decomposition::{MeshDecomposition, SceneDecomposition};
 pub use thumbnail::Thumbnail;
 
 fn scale_default() -> Vec3 {
@@ -51,9 +51,9 @@ impl ModelInfo {
     self.dir().join("thumbnail.jpg")
   }
 
-  pub fn mesh_decomposition_path(&self) -> PathBuf {
-    self.dir().join("mesh_decomposition.json")
-  }
+  // pub fn mesh_decomposition_path(&self) -> PathBuf {
+  //   self.dir().join("mesh_decomposition.json")
+  // }
 
   pub fn params_path(&self) -> PathBuf {
     self.dir().join("config.json")
@@ -62,11 +62,8 @@ impl ModelInfo {
 
 struct ModelCategory(Entity);
 
-fn model_init(commands: &mut Commands, mut category: ResMut<ModelCategory>) {
-  let entity = commands
-    .spawn((Name::new("Models"),))
-    .current_entity()
-    .unwrap();
+fn model_init(mut commands: Commands, mut category: ResMut<ModelCategory>) {
+  let entity = commands.spawn_bundle((Name::new("Models"),)).id();
   category.0 = entity;
 }
 
@@ -75,13 +72,13 @@ pub struct LoadModelEvent {
 }
 
 fn listen_for_load_models(
-  commands: &mut Commands,
+  mut commands: Commands,
   asset_server: Res<AssetServer>,
   mut json_loader: ResMut<JsonLoader>,
   mut event_reader: EventReader<LoadModelEvent>,
   category: Res<ModelCategory>,
 ) {
-  let io = asset_server.io();
+  // let io = asset_server.io();
   for LoadModelEvent { path } in event_reader.iter() {
     let path = path.to_string();
     let name = Path::new(&path)
@@ -92,13 +89,13 @@ fn listen_for_load_models(
       .to_string();
     let scene: Handle<Scene> = asset_server.load(path.as_str());
     let model_info = ModelInfo { name, path };
-    commands.spawn((scene, model_info.clone(), Parent(category.0)));
+    let entity_commands = commands.spawn_bundle((scene, model_info.clone(), Parent(category.0)));
 
-    if io.exists(&model_info.params_path()) {
-      json_loader.load::<ModelParams>(commands, asset_server.load(model_info.params_path()));
-    } else {
-      commands.with(ModelParams::default());
-    }
+    // if io.exists(&model_info.params_path()) {
+    json_loader.load::<ModelParams>(entity_commands, asset_server.load(model_info.params_path()));
+    // } else {
+    //   commands.with(ModelParams::default());
+    // }
   }
 }
 
@@ -110,7 +107,7 @@ pub struct SpawnModelEvent {
 }
 
 fn listen_for_spawn_models(
-  commands: &mut Commands,
+  mut commands: Commands,
   mut event_reader: EventReader<SpawnModelEvent>,
   query: Query<(&ModelInfo, &ModelParams, &Handle<Scene>)>,
 ) {
@@ -121,16 +118,9 @@ fn listen_for_spawn_models(
       body_status,
     } = &event;
     let (model_info, params, scene_handle) = query.get(*model).unwrap();
-    // info!("initial position {:#?}", position);
-    // info!("inital scale: {:#?}", params.scale);
-    // info!("position.rotation {:?}, to _glam quat {:?}", position.rotation, position.rotation.to_glam_quat());
-    // info!("spawned with {:#?}", Transform::from_matrix(Mat4::from_scale_rotation_translation(
-    //   params.scale,
-    //   position.rotation.to_glam_quat(),
-    //   position.translation.vector.to_glam_vec3(),
-    // )));
+    info!("spawning {:?}", model_info.name);
     commands
-      .spawn((
+      .spawn_bundle((
         Transform::from_matrix(Mat4::from_scale_rotation_translation(
           params.scale,
           position.rotation.to_glam_quat(),
@@ -159,7 +149,7 @@ impl Plugin for ModelsPlugin {
       .add_event::<LoadModelEvent>()
       .add_startup_system(model_init.system())
       .add_system(thumbnail::load_thumbnail.system())
-      .add_system(decomposition::load_decomp.system())
+      // .add_system(decomposition::load_decomp.system())
       .add_system(listen_for_spawn_models.system())
       .add_system(listen_for_load_models.system());
   }

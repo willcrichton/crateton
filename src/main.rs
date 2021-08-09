@@ -1,3 +1,4 @@
+#![allow(warnings)]
 use bevy::prelude::*;
 
 mod json;
@@ -33,21 +34,20 @@ fn main() {
 
   app
     .insert_resource(Msaa { samples: 4 })
+    //
     // Bevy core plugins
     .add_plugins(DefaultPlugins)
-    // Internal plugins
+    .add_plugin(shaders::ShadersPlugin)
     .add_plugin(physics::PhysicsPlugin)
+    //
+    // Internal plugins
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
-    .add_plugin(shaders::ShadersPlugin)
     .add_plugin(map::MapPlugin)
     .add_plugin(ui::UiPlugin)
     .add_plugin(json::JsonPlugin)
     .add_plugin(models::ModelsPlugin)
     .add_plugin(scripts::ScriptsPlugin);
-
-  // External plugins
-  // app.add_plugin(bevy_rapier3d::render::RapierRenderPlugin);
 
   #[cfg(target_arch = "wasm32")]
   {

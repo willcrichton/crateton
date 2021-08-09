@@ -17,8 +17,8 @@ pub struct PlayerControllerPlugin;
 impl Plugin for PlayerControllerPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
-      //.add_plugin(bevy_skybox::SkyboxPlugin::from_image_file("images/skybox/sky2.png"))
       .add_startup_system(spawn::spawn_character.system())
+      // .add_system(spawn::update_camera.system())
       //
       // Detect keyboard + mouse events
       .add_event::<events::PitchEvent>()
@@ -33,7 +33,7 @@ impl Plugin for PlayerControllerPlugin {
       .init_resource::<raycast::ViewInfo>()
       .add_system(raycast::compute_view_info.system())
       .add_stage_after(
-        bevy::app::stage::PRE_UPDATE,
+        CoreStage::PreUpdate,
         PROCESS_INPUT_EVENTS,
         SystemStage::parallel(),
       )
@@ -42,17 +42,10 @@ impl Plugin for PlayerControllerPlugin {
       //
       // Turn events into forces on controller
       .add_system_to_stage(PROCESS_INPUT_EVENTS, controller::input_to_events.system())
-      .add_system_to_stage(
-        bevy::app::stage::UPDATE,
-        controller::controller_to_yaw.system(),
-      )
-      .add_system_to_stage(
-        bevy::app::stage::UPDATE,
-        controller::controller_to_pitch.system(),
-      )
+      .add_system_to_stage(CoreStage::Update, controller::controller_to_yaw.system())
+      .add_system_to_stage(CoreStage::Update, controller::controller_to_pitch.system())
       //
       // Apply forces through physics engine
-      .add_system_to_stage(bevy::app::stage::PRE_UPDATE, physics::create_mass.system())
       .add_stage_before(
         PROCESS_INPUT_EVENTS,
         UPDATE_VELOCITY,
@@ -62,7 +55,7 @@ impl Plugin for PlayerControllerPlugin {
       .add_stage_after(PROCESS_INPUT_EVENTS, APPLY_INPUT, SystemStage::parallel())
       .add_system_to_stage(
         APPLY_INPUT,
-        physics::controller_to_rapier_dynamic_force.system(),
+        physics::controller_to_rapier_dynamic_impulse.system(),
       )
       .add_system_to_stage(APPLY_INPUT, physics::controller_to_fly.system());
 

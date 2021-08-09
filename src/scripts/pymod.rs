@@ -7,11 +7,10 @@ pub struct ScriptOutputEvent {
 #[pymodule]
 pub mod crateton_pymod {
   use super::ScriptOutputEvent;
-  use bevy::prelude::*;
+  use crate::prelude::*;
   use rustpython_vm::{
     builtins::{PyFloat, PyList, PyStrRef, PyTypeRef},
-    pyclass, pyimpl,
-    pyobject::{ItemProtocol, PyRef, PyResult, PyValue, StaticType, TryIntoRef},
+    pyclass, pyimpl, ItemProtocol, PyRef, PyResult, PyValue, StaticType, TryIntoRef,
     VirtualMachine,
   };
   use std::{fmt, ptr::NonNull};
@@ -95,7 +94,7 @@ pub mod crateton_pymod {
         .map(|transform| CTransform {
           transform: *transform,
         })
-        .map_err(|_| {
+        .ok_or_else(|| {
           vm.new_lookup_error(format!("Entity {:?} does not have Transform", self.entity))
         })
     }
@@ -103,10 +102,7 @@ pub mod crateton_pymod {
 
   #[pyattr]
   #[pyclass(name, module = "crateton")]
-  pub struct CWorld {
-    world: NonNull<World>,
-    resources: NonNull<Resources>,
-  }
+  pub struct CWorld(NonNull<World>);
   pyvalue_impl!(CWorld);
   debug_impl!(CWorld);
 
@@ -120,35 +116,25 @@ pub mod crateton_pymod {
         .unwrap()
     }
 
-    pub fn new(world: &mut World, resources: &mut Resources) -> Self {
-      CWorld {
-        world: NonNull::new(world).unwrap(),
-        resources: NonNull::new(resources).unwrap(),
-      }
+    pub fn new(world: &mut World) -> Self {
+      CWorld(NonNull::new(world).unwrap())
     }
 
     fn world(&self) -> &World {
-      unsafe { self.world.as_ref() }
+      unsafe { self.0.as_ref() }
     }
 
-    fn world_mut(&mut self) -> &mut World {
-      unsafe { self.world.as_mut() }
-    }
-
-    fn resources(&self) -> &Resources {
-      unsafe { self.resources.as_ref() }
-    }
-
-    fn resources_mut(&mut self) -> &mut Resources {
-      unsafe { self.resources.as_mut() }
+    fn world_mut(&self) -> &mut World {
+      unsafe { &mut *self.0.as_ptr() }
     }
 
     #[pymethod]
     fn entity_with_name(&self, name: PyStrRef, vm: &VirtualMachine) -> PyResult<CEntity> {
       let name = name.as_ref();
       self
-        .world()
+        .world_mut()
         .query::<(Entity, &Name)>()
+        .iter(self.world())
         .find(|(_, name_component)| name == name_component.as_str())
         .map(|(entity, _)| CEntity { entity })
         .ok_or_else(|| vm.new_lookup_error(format!("Name {} does not exist", name)))
@@ -167,8 +153,8 @@ pub mod crateton_pymod {
     fn write(&self, data: PyStrRef, vm: &VirtualMachine) {
       let world = CWorld::fetch(vm);
       let mut events = world
-        .resources()
-        .get_mut::<Events<ScriptOutputEvent>>()
+        .world_mut()
+        .get_resource_mut::<Events<ScriptOutputEvent>>()
         .unwrap();
       events.send(ScriptOutputEvent {
         output: data.as_ref().to_owned(),

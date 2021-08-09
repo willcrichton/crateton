@@ -18,10 +18,10 @@ mod texture;
 /// This example renders a second camera to a texture and saves it to a file
 fn main() {
   App::build()
-    .add_resource(Msaa { samples: 4 })
+    .insert_resource(Msaa { samples: 4 })
     .add_plugins(DefaultPlugins)
     .add_startup_system(setup.system())
-    .add_system_to_stage(stage::LAST, wait_for_spawn.system())
+    .add_system_to_stage(CoreStage::Last, wait_for_spawn.system())
     .run();
 }
 
@@ -39,7 +39,7 @@ fn wait_for_spawn(mut render_graph: ResMut<RenderGraph>, query: Query<&Children,
 }
 
 fn setup(
-  commands: &mut Commands,
+  mut commands: Commands,
   mut active_cameras: ResMut<ActiveCameras>,
   mut render_graph: ResMut<RenderGraph>,
   asset_server: Res<AssetServer>,
@@ -219,26 +219,26 @@ fn setup(
     extents[2] * 2. * mul,
   );
   commands
-    .spawn((
+    .spawn_bundle((
       Tag,
       GlobalTransform::identity(),
       Transform::from_scale(Vec3::new(scale[0], scale[1], scale[2])),
     ))
     .with_children(|parent| {
       parent.spawn_scene(asset_server.load(path.as_str()));
-    })
-    .spawn(LightBundle {
-      transform: Transform::from_translation(camera),
-      ..Default::default()
-    })
-    // main camera
-    .spawn(Camera3dBundle {
-      transform: Transform::from_xyz(0.0, 0.0, 6.0).looking_at(Vec3::default(), Vec3::unit_y()),
-      ..Default::default()
     });
+  commands.spawn_bundle(LightBundle {
+    transform: Transform::from_translation(camera),
+    ..Default::default()
+  });
+  // main camera
+  commands.spawn_bundle(PerspectiveCameraBundle {
+    transform: Transform::from_xyz(0.0, 0.0, 6.0).looking_at(Vec3::default(), Vec3::unit_y()),
+    ..Default::default()
+  });
 
   // save to file camera, hack around not having a window
-  let mut secondary_camera = Camera3dBundle {
+  let mut secondary_camera = PerspectiveCameraBundle {
     camera: Camera {
       name: Some("Secondary".to_string()),
       window: WindowId::new(),
@@ -253,5 +253,5 @@ fn setup(
   camera_projection.update(size.width as f32, size.height as f32);
   secondary_camera.camera.projection_matrix = camera_projection.get_projection_matrix();
   secondary_camera.camera.depth_calculation = camera_projection.depth_calculation();
-  commands.spawn(secondary_camera);
+  commands.spawn_bundle(secondary_camera);
 }

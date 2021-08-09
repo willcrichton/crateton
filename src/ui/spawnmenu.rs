@@ -1,5 +1,5 @@
 use crate::{
-  models::{ModelInfo, SceneDecomposition, SpawnModelEvent, Thumbnail},
+  models::{ModelInfo, SpawnModelEvent, Thumbnail},
   player::{controller::CharacterController, raycast::ViewInfo},
   prelude::*,
 };
@@ -7,6 +7,7 @@ use crate::{
 use bevy_egui::{egui, EguiContext};
 use bevy_rapier3d::{
   na::{Isometry3, Translation3, UnitQuaternion, Vector3},
+  prelude::AABB,
   rapier::dynamics::BodyStatus,
 };
 
@@ -29,7 +30,7 @@ fn spawn_ui_system(
   mut egui_context: ResMut<EguiContext>,
   interned_textures: Res<InternedTextures>,
   mut spawn_model_events: ResMut<Events<SpawnModelEvent>>,
-  model_query: Query<(Entity, &ModelInfo, &SceneDecomposition)>,
+  model_query: Query<(Entity, &ModelInfo)>,
   view_info: Res<ViewInfo>,
   mut ui_window_manager: ResMut<UiWindowManager>,
   mut ui_lock: Local<Option<UiLock>>,
@@ -43,9 +44,9 @@ fn spawn_ui_system(
   }
 
   if keyboard_input.pressed(key) {
-    let ctx = &mut egui_context.ctx;
+    let ctx = egui_context.ctx();
     egui::Window::new("Spawn window").show(ctx, |ui| {
-      for (model, model_info, decomp) in model_query.iter() {
+      for (model, model_info) in model_query.iter() {
         let texture_id = if let Some(texture_id) = interned_textures.get_egui_id(&model_info.name) {
           texture_id
         } else {
@@ -57,9 +58,11 @@ fn spawn_ui_system(
           [100.0, 100.0],
         ));
 
-        if thumbnail.clicked {
-          let aabb = decomp.aabb();
-          let half_height = aabb.half_extents().y;
+        if thumbnail.clicked() {
+          // let aabb = AABB::new_invalid();
+          // // let aabb = decomp.aabb();
+          // let half_height = aabb.half_extents().y;
+          let half_height = 5.;
           let mut translation = view_info
             .hit_point()
             .unwrap_or_else(|| view_info.ray.point_at(half_height));
@@ -84,6 +87,6 @@ impl Plugin for SpawnmenuPlugin {
   fn build(&self, app: &mut AppBuilder) {
     app
       .add_system(spawn_ui_system.system())
-      .add_system_to_stage(stage::POST_UPDATE, load_assets.system());
+      .add_system_to_stage(CoreStage::PostUpdate, load_assets.system());
   }
 }

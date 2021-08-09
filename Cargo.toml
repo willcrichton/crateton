@@ -1,74 +1,55 @@
-cargo-features = ["resolver"]
-
 [package]
+authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
+default-run = "crateton"
+edition = "2018"
 name = "crateton"
 version = "0.1.0"
-authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
-edition = "2018"
-default-run = "crateton"
-resolver = "2"
 
 [workspace]
 members = ["crates/*"]
 
-
 [features]
-default = [
-  "bevy/default", 
-  "bevy/jpeg", # non-default bevy
-  "bevy/dynamic", # debug feature to improve compile times
-  "rustpython_features"
-]
+# default = [
+#   "bevy/default",
+#   "bevy/jpeg", # non-default bevy
+#   "bevy/dynamic", # debug feature to improve compile times
+#   "rustpython_features"
+# ]
 
-web = [
-  "bevy/png", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf",  # default bevy
-  "bevy/jpeg", # non-default bevy
-  "bevy_webgl2", "web-sys", 
-  "rustpython_features"
-]
+# web = [
+#   "bevy/png", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf",  # default bevy
+#   "bevy/jpeg", # non-default bevy
+#   "bevy_webgl2", "web-sys",
+#   "rustpython_features"
+# ]
 
-rustpython_features = ["rustpython-vm/freeze-stdlib", "rustpython-vm/compile-parse"]
+# rustpython_features = ["rustpython-vm/freeze-stdlib", "rustpython-vm/compile-parse"]
 
 
 [dependencies]
-bevy = {version = "0.4.0", default-features = false}
+bevy = {version = "0.5.0", features = ["jpeg", "dynamic"]}
 
 # Physics
-bevy_rapier3d = "0.8.0"
+bevy_rapier3d = {version = "0.10.2", features = ["simd-stable", "render"]}
 
 # Ui
-bevy_egui = "0.1.2"
-bevy-inspector-egui = {git = "https://github.com/jakobhellermann/bevy-inspector-egui/", branch = "bevy-0.5"}
+bevy-inspector-egui = {version = "0.6.1", features = ["rapier"]}
+bevy_egui = "0.6.1"
 syntect = {version = "4.5.0", default-features = false, features = ["default-fancy"]}
 
-# Web 
+# Web
 web-sys = {version = "0.3.46", optional = true}
-bevy_webgl2 = {git = "https://github.com/rparrett/bevy_webgl2", branch = "update-for-bevy-master", optional = true}
+# bevy_webgl2 = {git = "https://github.com/mrk-its/bevy_webgl2", optional = true}
 
-# Scripts 
-rustpython-vm = {git = "https://github.com/RustPython/RustPython", default-features = false}
+# Scripts
 rustpython-common = {git = "https://github.com/RustPython/RustPython"}
+rustpython-vm = {git = "https://github.com/RustPython/RustPython", default-features = false, features = ["freeze-stdlib", "compile-parse"]}
 
 # Misc
-serde = {version = "1", features = ["derive"]}
-serde_json = "1"
 anyhow = "1.0"
 itertools = "0.10"
-
-
-[patch.crates-io]
-bevy = { path = "../bevy" }
-winit = { path = "../winit" } # until my PR gets merged and bevy updated
-bevy_egui = { path = "../bevy_egui" } # until gets updated to bevy-0.5
-bevy_winit = { path = "../bevy/crates/bevy_winit" } # only needed for bevy_egui
-bevy_rapier3d = { path = "../bevy_rapier/bevy_rapier3d" } # until gets updated to bevy-0.5
-
-# Only needed for bevy_egui patch
-[patch."https://github.com/jakobhellermann/bevy_egui"]
-bevy_egui = { path = "../bevy_egui" }
-
-[patch."https://github.com/bevyengine/bevy"]
-bevy = { path = "../bevy" }
+serde = {version = "1", features = ["derive"]}
+serde_json = "1"
 
 
 ###### Performance knobs
@@ -80,6 +61,6 @@ debug = true
 opt-level = 3
 
 [profile.dev]
-opt-level = 2
 debug = true
 debug-assertions = true
+opt-level = 2

@@ -1,5 +1,5 @@
 use bevy::{
-  app::AppExit,
+  app::{AppExit, Events},
   prelude::*,
   render::{
     render_graph::{Node, ResourceSlotInfo, ResourceSlots},
@@ -36,7 +36,6 @@ impl Node for TextureNode {
   fn update(
     &mut self,
     _world: &World,
-    _resources: &Resources,
     render_context: &mut dyn RenderContext,
     _input: &ResourceSlots,
     output: &mut ResourceSlots,
@@ -86,8 +85,7 @@ impl Node for TextureReadoutNode {
 
   fn update(
     &mut self,
-    _world: &World,
-    resources: &Resources,
+    world: &World,
     render_context: &mut dyn RenderContext,
     input: &ResourceSlots,
     _output: &mut ResourceSlots,
@@ -96,7 +94,11 @@ impl Node for TextureReadoutNode {
       return;
     }
 
-    let mut app_exit_events = resources.get_mut::<Events<AppExit>>().unwrap();
+    let mut app_exit_events = unsafe {
+      world
+        .get_resource_unchecked_mut::<Events<AppExit>>()
+        .unwrap()
+    };
 
     if let Some(RenderResourceId::Texture(texture)) = input.get(0) {
       let render_resource_context = render_context.resources_mut();

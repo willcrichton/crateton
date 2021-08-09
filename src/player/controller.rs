@@ -1,11 +1,13 @@
+use crate::prelude::*;
 use crate::ui::UiWindowManager;
 
 use super::{
-  events::{ControllerEvents, ForceEvent, ImpulseEvent, TranslationEvent},
+  events::{ForceEvent, ImpulseEvent, PitchEvent, TranslationEvent, YawEvent},
   input_map::InputMap,
   look::{LookDirection, LookEntity},
 };
-use bevy::prelude::*;
+
+use bevy_rapier3d::prelude::*;
 
 pub struct BodyTag;
 pub struct YawTag;
@@ -52,16 +54,6 @@ impl Default for CharacterController {
   }
 }
 
-pub struct Mass {
-  pub mass: f32,
-}
-
-impl Mass {
-  pub fn new(mass: f32) -> Self {
-    Self { mass }
-  }
-}
-
 pub enum Perspective {
   FirstPerson,
   ThirdPerson,
@@ -81,11 +73,11 @@ impl Perspective {
 pub fn input_to_events(
   time: Res<Time>,
   keyboard_input: Res<Input<KeyCode>>,
-  mut translation_events: ResMut<Events<TranslationEvent>>,
-  mut impulse_events: ResMut<Events<ImpulseEvent>>,
-  mut force_events: ResMut<Events<ForceEvent>>,
+  mut translation_events: EventWriter<TranslationEvent>,
+  mut impulse_events: EventWriter<ImpulseEvent>,
+  mut force_events: EventWriter<ForceEvent>,
   mut controller: ResMut<CharacterController>,
-  mut controller_query: Query<(&Mass, &LookEntity)>,
+  mut controller_query: Query<(&RigidBodyMassProps, &LookEntity)>,
   look_direction_query: Query<&LookDirection>,
   mut transform_query: Query<(&mut Transform, &mut Perspective)>,
   ui_window_manager: Res<UiWindowManager>,
@@ -95,7 +87,7 @@ pub fn input_to_events(
   }
 
   let xz = Vec3::new(1.0, 0.0, 1.0);
-  for (mass, look_entity) in controller_query.iter_mut() {
+  for (mass_props, look_entity) in controller_query.iter_mut() {
     let camera_entity = look_entity.0;
     controller.sim_to_render += time.delta_seconds();
 
@@ -192,15 +184,16 @@ pub fn input_to_events(
 
     // Calculate impulse - the desired momentum change for the time period
     let delta_velocity = desired_velocity - controller.velocity * xz;
-    let impulse = delta_velocity * mass.mass;
+    let impulse = delta_velocity * 1.0 / mass_props.effective_inv_mass;
     if impulse.length_squared() > 1E-6 {
-      impulse_events.send(ImpulseEvent::new(&impulse));
+      // println!("IMPULSE EVENT!");
+      impulse_events.send(ImpulseEvent(impulse.clone()));
     }
 
     // Calculate force - the desired rate of change of momentum for the time period
     let force = impulse / controller.dt;
     if force.length_squared() > 1E-6 {
-      force_events.send(ForceEvent::new(&force));
+      force_events.send(ForceEvent(force));
     }
 
     controller.velocity.x = desired_velocity.x;
@@ -214,7 +207,7 @@ pub fn input_to_events(
 
     let translation = controller.velocity * controller.dt;
     if translation.length_squared() > 1E-6 {
-      translation_events.send(TranslationEvent::new(&translation));
+      translation_events.send(TranslationEvent(translation));
     }
 
     controller.input_state = InputState::default();
@@ -222,10 +215,10 @@ pub fn input_to_events(
 }
 
 pub fn controller_to_yaw(
-  mut reader: ControllerEvents,
+  mut yaws: EventReader<YawEvent>,
   mut query: Query<&mut Transform, With<YawTag>>,
 ) {
-  if let Some(yaw) = reader.yaws.iter().last() {
+  if let Some(yaw) = yaws.iter().next() {
     for mut transform in query.iter_mut() {
       transform.rotation = Quat::from_rotation_y(**yaw);
     }
@@ -233,10 +226,10 @@ pub fn controller_to_yaw(
 }
 
 pub fn controller_to_pitch(
-  mut reader: ControllerEvents,
+  mut pitches: EventReader<PitchEvent>,
   mut query: Query<&mut Transform, With<HeadTag>>,
 ) {
-  if let Some(pitch) = reader.pitches.iter().last() {
+  if let Some(pitch) = pitches.iter().next() {
     for mut transform in query.iter_mut() {
       transform.rotation = Quat::from_rotation_ypr(0.0, **pitch, 0.0);
     }

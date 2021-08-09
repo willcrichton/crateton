@@ -1,6 +1,7 @@
+use crate::prelude::*;
 use bevy::{
   asset::{AssetLoader, LoadContext, LoadedAsset},
-  prelude::*,
+  ecs::system::EntityCommands,
   reflect::TypeUuid,
   utils::BoxedFuture,
 };
@@ -44,8 +45,10 @@ impl ValueLoader {
     let convert = Box::new(
       |commands: &mut Commands, entity: Entity, json_data: &JsonData| {
         let data: T = serde_json::from_value(json_data.0.clone()).unwrap();
-        commands.insert_one(entity, data);
-        commands.remove_one::<LoadingJsonTag<T>>(entity);
+        commands
+          .entity(entity)
+          .insert(data)
+          .remove::<LoadingJsonTag<T>>();
       },
     ) as JsonCallback;
     ValueLoader { handle, convert }
@@ -56,12 +59,11 @@ pub struct JsonLoader(HashMap<Entity, Vec<ValueLoader>>);
 impl JsonLoader {
   pub fn load<T: DeserializeOwned + Send + Sync + 'static>(
     &mut self,
-    commands: &mut Commands,
+    mut commands: EntityCommands,
     handle: Handle<JsonData>,
   ) {
-    let entity = commands.current_entity().unwrap();
-    commands.with(LoadingJsonTag::<T>(PhantomData));
-    let loaders = self.0.entry(entity).or_insert_with(Vec::new);
+    commands.insert(LoadingJsonTag::<T>(PhantomData));
+    let loaders = self.0.entry(commands.id()).or_insert_with(Vec::new);
     loaders.push(ValueLoader::new::<T>(handle));
   }
 }
@@ -69,7 +71,7 @@ impl JsonLoader {
 pub struct LoadingJsonTag<T>(PhantomData<T>);
 
 fn load_json(
-  commands: &mut Commands,
+  mut commands: Commands,
   assets: Res<Assets<JsonData>>,
   mut json_loader: ResMut<JsonLoader>,
 ) {
@@ -77,7 +79,7 @@ fn load_json(
     let mut to_delete = vec![];
     for (i, loader) in loaders.iter().enumerate() {
       if let Some(data) = assets.get(loader.handle.clone()) {
-        (loader.convert)(commands, *entity, data);
+        (loader.convert)(&mut commands, *entity, data);
         to_delete.push(i);
       }
     }
