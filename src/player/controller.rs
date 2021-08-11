@@ -186,7 +186,6 @@ pub fn input_to_events(
     let delta_velocity = desired_velocity - controller.velocity * xz;
     let impulse = delta_velocity * 1.0 / mass_props.effective_inv_mass;
     if impulse.length_squared() > 1E-6 {
-      // println!("IMPULSE EVENT!");
       impulse_events.send(ImpulseEvent(impulse.clone()));
     }
 

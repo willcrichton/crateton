@@ -34,11 +34,11 @@ fn repl(state: &mut TerminalState, ui: &mut Ui, run_script_events: &mut Events<R
       _ => false,
     });
 
-    if pressed_enter && input_field.lost_kb_focus {
+    if pressed_enter && input_field.lost_kb_focus() {
       let code = state.input.clone();
       state.logs.push(format!(">>> {}\n", code));
       state.input = String::new();
-      ui.memory().request_kb_focus(input_field.id);
+      ui.memory().request_focus(input_field.id);
 
       run_script_events.send(RunScriptEvent { code });
     }
@@ -75,7 +75,7 @@ fn editor(
         .text_style(TextStyle::Monospace)
         .ui(ui, &mut state.editor_state, editor_resources);
 
-      if ui.button("Run").clicked {
+      if ui.button("Run").clicked() {
         run_script_events.send(RunScriptEvent {
           code: state.code.clone(),
         });
@@ -113,7 +113,7 @@ fn terminal_system(
   }
 
   if ui_lock.is_some() {
-    let ctx = &egui_context.ctx;
+    let ctx = egui_context.ctx();
     let window = windows.get_primary().unwrap();
     let height = window.height();
 

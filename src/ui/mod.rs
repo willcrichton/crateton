@@ -6,9 +6,9 @@ use bevy_egui::{
 use std::collections::HashMap;
 
 mod debugger;
-// mod editor;
+mod editor;
 mod spawnmenu;
-// mod terminal;
+mod terminal;
 
 #[derive(Default)]
 pub struct InternedTextures {
@@ -64,7 +64,12 @@ fn ui_window_system(manager: Res<UiWindowManager>, mut windows: ResMut<Windows>)
   window.set_cursor_visibility(showing);
 }
 
-fn configure_fonts(mut egui_context: ResMut<EguiContext>) {
+fn configure_fonts(mut egui_context: ResMut<EguiContext>, mut done: Local<bool>) {
+  if *done {
+    return;
+  }
+
+  *done = true;
   let ctx = egui_context.ctx();
   let mut fonts = FontDefinitions::default();
   fonts
@@ -82,12 +87,13 @@ impl Plugin for UiPlugin {
       .init_resource::<InternedTextures>()
       .init_resource::<UiWindowManager>()
       .add_system(ui_window_system.system())
-      // .add_startup_system(configure_fonts.system().after(EguiSystem::BeginFrame))
+      
+      .add_system(configure_fonts.system())
 
       // Individual UI plugins
       .add_plugin(debugger::DebuggerPlugin)
       .add_plugin(spawnmenu::SpawnmenuPlugin)
-      // .add_plugin(terminal::TerminalPlugin);
+      .add_plugin(terminal::TerminalPlugin);
       ;
   }
 }
