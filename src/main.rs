@@ -14,6 +14,13 @@ mod tools;
 mod ui;
 mod utils;
 
+/* TODOS
+- web support
+- tool outline shader
+- python syntax highlighting
+- mesh decomp & thumbnail offline generators
+*/
+
 fn main() {
   let mut app = App::build();
 
