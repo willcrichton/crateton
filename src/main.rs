@@ -15,7 +15,7 @@ mod ui;
 mod utils;
 
 /* TODOS
-- web support
+- web support [sub todo: figure out mouse capture]
 - tool outline shader
 - python syntax highlighting
 - mesh decomp & thumbnail offline generators

@@ -4,49 +4,20 @@ default-run = "crateton"
 edition = "2018"
 name = "crateton"
 version = "0.1.0"
+resolver = "2"
 
 [workspace]
 members = ["crates/*"]
 
-[features]
-default = [
-  "bevy/png", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf",
-  "bevy/jpeg",
-]
-
-native = [
-  "bevy/dynamic",
-  "bevy/bevy_wgpu"
-]
-
-web = [
-  "bevy_webgl2", "web-sys"
-]
-
-# web = [
-#   "bevy/png", "bevy/render", "bevy/bevy_winit", "bevy/bevy_gltf",  # default bevy
-#   "bevy/jpeg", # non-default bevy
-#   "bevy_webgl2", "web-sys",
-#   "rustpython_features"
-# ]
 
 # rustpython_features = ["rustpython-vm/freeze-stdlib", "rustpython-vm/compile-parse"]
 
 
 [dependencies]
-bevy = {version = "0.5.0", default-features = false}
-
-# Physics
-bevy_rapier3d = {version = "0.10.2", features = ["simd-stable", "render"]}
-
 # Ui
 bevy-inspector-egui = {version = "0.6.1", features = ["rapier"]}
 bevy_egui = "0.6.1"
 syntect = {version = "4.5.0", default-features = false, features = ["default-fancy"]}
-
-# Web
-web-sys = {version = "0.3.50", optional = true}
-bevy_webgl2 = {git = "https://github.com/mrk-its/bevy_webgl2", optional = true}
 
 # Scripts
 rustpython-common = {git = "https://github.com/RustPython/RustPython"}
@@ -58,8 +29,19 @@ itertools = "0.10"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 
-[patch.crates-io]
-bevy = {git = "https://github.com/bevyengine/bevy", branch = "main"}
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bevy = {version = "0.5", features = ["jpeg", "dynamic"]}
+bevy_rapier3d = {version = "0.10.2", features = ["simd-stable"]}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = {version = "0.5", default-features = false, features = ["render", "bevy_gltf", "png", "bevy_winit", "jpeg"]}
+bevy_rapier3d = {version = "0.10.2", features = ["wasm-bindgen"]}
+web-sys = "0.3.46"
+bevy_webgl2 = "0.5"
+
+
+# [patch.crates-io]
+# bevy = {git = "https://github.com/bevyengine/bevy", branch = "main"}
 
 ###### Performance knobs
 
