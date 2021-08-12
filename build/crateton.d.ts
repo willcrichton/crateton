@@ -9,9 +9,9 @@ export interface InitOutput {
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
-  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h1dba6a87f0527779: (a: number, b: number, c: number) => void;
-  readonly _dyn_core__ops__function__FnMut_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hf2d655737b2deba9: (a: number, b: number) => void;
-  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h67fcbd3de25b221f: (a: number, b: number, c: number) => void;
+  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h00aac5065647a642: (a: number, b: number, c: number) => void;
+  readonly _dyn_core__ops__function__FnMut_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hbb2f356187da2d36: (a: number, b: number) => void;
+  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hd818785c9cfcd249: (a: number, b: number, c: number) => void;
   readonly __wbindgen_free: (a: number, b: number) => void;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __wbindgen_start: () => void;
@@ -26,4 +26,3 @@ export interface InitOutput {
 * @returns {Promise<InitOutput>}
 */
 export default function init (module_or_path?: InitInput | Promise<InitInput>): Promise<InitOutput>;
-        
