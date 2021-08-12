@@ -79,7 +79,7 @@ fn handle_shader_events(
 
 pub struct ShadersPlugin;
 impl Plugin for ShadersPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .add_event::<AttachShaderEvent>()
       .add_event::<DetachShaderEvent>()

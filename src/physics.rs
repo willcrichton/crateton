@@ -62,7 +62,7 @@ impl<'a> MeshWrapper<'a> {
       .attribute(name.clone())
       .expect(&format!("invalid attribute name {}", name));
     match attr {
-      VertexAttributeValues::Float3(v) => v
+      VertexAttributeValues::Float32x3(v) => v
         .iter()
         .map(|p| point![p[0], p[1], p[2]])
         .collect::<Vec<_>>(),
@@ -179,7 +179,7 @@ impl AABBExt for AABB {
 
 pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
       .add_system(attach_collider.system());

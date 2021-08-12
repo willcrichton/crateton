@@ -22,7 +22,7 @@ mod utils;
 */
 
 fn main() {
-  let mut app = App::build();
+  let mut app = App::new();
 
   #[cfg(target_arch = "wasm32")]
   {
@@ -41,13 +41,9 @@ fn main() {
 
   app
     .insert_resource(Msaa { samples: 4 })
-    //
-    // Bevy core plugins
     .add_plugins(DefaultPlugins)
     .add_plugin(shaders::ShadersPlugin)
     .add_plugin(physics::PhysicsPlugin)
-    //
-    // Internal plugins
     .add_plugin(player::PlayerControllerPlugin)
     .add_plugin(tools::ToolPlugin)
     .add_plugin(map::MapPlugin)
@@ -61,24 +57,5 @@ fn main() {
     app.add_plugin(bevy_webgl2::WebGL2Plugin);
   }
 
-  app.add_system(capture_first_click.system());
-
   app.run();
-}
-
-fn capture_first_click(
-  mut windows: ResMut<Windows>,
-  mut done: Local<bool>,
-  mouse_input: Res<Input<MouseButton>>,
-) {
-  if *done {
-    return;
-  }
-
-  let window = windows.get_primary_mut().unwrap();
-  if mouse_input.just_pressed(MouseButton::Left) {
-    window.set_cursor_lock_mode(true);
-    window.set_cursor_visibility(false);
-    *done = true;
-  }
 }

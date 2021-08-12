@@ -136,7 +136,7 @@ fn terminal_system(
 
 pub struct TerminalPlugin;
 impl Plugin for TerminalPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .init_resource::<EditorResources>()
       .add_system(terminal_system.system());

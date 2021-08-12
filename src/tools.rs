@@ -8,7 +8,7 @@ use crate::{
 use bevy::{
   input::mouse::{MouseMotion, MouseWheel},
   render::{
-    pipeline::{CullMode, PipelineDescriptor, PrimitiveState},
+    pipeline::{Face, PipelineDescriptor, PrimitiveState},
     shader::ShaderStages,
   },
 };
@@ -207,7 +207,7 @@ fn init_outline_shader(
 ) {
   outline_shader.0 = pipelines.add(PipelineDescriptor {
     primitive: PrimitiveState {
-      cull_mode: CullMode::Front,
+      cull_mode: Some(Face::Front),
       ..Default::default()
     },
     ..PipelineDescriptor::default_config(ShaderStages {
@@ -219,7 +219,7 @@ fn init_outline_shader(
 
 pub struct ToolPlugin;
 impl Plugin for ToolPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .init_resource::<OutlineShader>()
       .init_resource::<ToolState>()

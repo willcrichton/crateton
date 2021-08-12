@@ -84,7 +84,7 @@ fn spawn_ui_system(
 
 pub struct SpawnmenuPlugin;
 impl Plugin for SpawnmenuPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .add_system(spawn_ui_system.system())
       .add_system_to_stage(CoreStage::PostUpdate, load_assets.system());

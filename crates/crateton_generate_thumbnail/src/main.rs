@@ -233,7 +233,7 @@ fn setup(
   });
   // main camera
   commands.spawn_bundle(PerspectiveCameraBundle {
-    transform: Transform::from_xyz(0.0, 0.0, 6.0).looking_at(Vec3::default(), Vec3::unit_y()),
+    transform: Transform::from_xyz(0.0, 0.0, 6.0).looking_at(Vec3::default(), Vec3::Y),
     ..Default::default()
   });
 
@@ -246,7 +246,7 @@ fn setup(
     },
     // TODO: pick a transform that matches the AABB of the mesh
     transform: Transform::from_translation(camera)
-      .looking_at(Vec3::new(center[0], center[1], center[2]), Vec3::unit_y()),
+      .looking_at(Vec3::new(center[0], center[1], center[2]), Vec3::Y),
     ..Default::default()
   };
   let camera_projection = &mut secondary_camera.perspective_projection;

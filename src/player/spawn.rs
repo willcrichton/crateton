@@ -17,7 +17,7 @@ pub fn spawn_character(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
 
   let rigid_body = RigidBodyBundle {
     body_type: BodyStatus::Dynamic,
-    position: vector![0., height * 3., 5.5].into(),    
+    position: vector![0., height * 3., 5.5].into(),
     mass_properties: RigidBodyMassProps {
       flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
       ..Default::default()
@@ -26,7 +26,7 @@ pub fn spawn_character(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
   };
 
   let collider = ColliderBundle {
-    shape: ColliderShape::cuboid(1.0, height/2., 1.0),
+    shape: ColliderShape::cuboid(1.0, height / 2., 1.0),
     mass_properties: ColliderMassProps::Density(1.0),
     flags: ColliderFlags {
       collision_groups: InteractionGroups::all().with_memberships(RAPIER_PLAYER_GROUP),
@@ -53,9 +53,9 @@ pub fn spawn_character(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     .spawn_bundle(PbrBundle {
       mesh: cube,
       transform: Transform::from_matrix(Mat4::from_scale_rotation_translation(
-        Vec3::new(1.0, height/2., 1.0),
-        Quat::identity(),
-        Vec3::zero(),
+        Vec3::new(1.0, height / 2., 1.0),
+        Quat::IDENTITY,
+        Vec3::ZERO,
       )),
       ..Default::default()
     })
@@ -71,22 +71,24 @@ pub fn spawn_character(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     ))
     .id();
 
-  let head = commands.spawn_bundle((
-    controller::HeadTag,
-    GlobalTransform::identity(),
-    Transform::from_matrix(Mat4::from_scale_rotation_translation(
-      Vec3::one(),
-      Quat::from_rotation_y(0.),
-      Vec3::new(0.0, 0.5 * head_scale + height - 1.695, 0.0),
-    )),
-    Name::new("player head"),
-  )).id();
+  let head = commands
+    .spawn_bundle((
+      controller::HeadTag,
+      GlobalTransform::identity(),
+      Transform::from_matrix(Mat4::from_scale_rotation_translation(
+        Vec3::ONE,
+        Quat::from_rotation_y(0.),
+        Vec3::new(0.0, 0.5 * head_scale + height - 1.695, 0.0),
+      )),
+      Name::new("player head"),
+    ))
+    .id();
 
   let perspective = controller::Perspective::FirstPerson;
   let camera = commands
     .spawn_bundle(PerspectiveCameraBundle {
       transform: perspective.to_transform(),
-      //.looking_at(Vec3::new(0., height, 0.), Vec3::unit_y()),
+      //.looking_at(Vec3::new(0., height, 0.), Vec3::Y),
       ..Default::default()
     })
     .insert_bundle((

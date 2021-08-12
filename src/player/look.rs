@@ -19,9 +19,9 @@ pub struct LookDirection {
 impl Default for LookDirection {
   fn default() -> Self {
     Self {
-      forward: Vec3::unit_z(),
-      right: -Vec3::unit_x(),
-      up: Vec3::unit_y(),
+      forward: Vec3::Z,
+      right: -Vec3::X,
+      up: Vec3::Y,
     }
   }
 }
@@ -35,9 +35,9 @@ pub fn forward_up(settings: Res<MouseSettings>, mut query: Query<&mut LookDirect
       settings.yaw_pitch_roll.y,
       settings.yaw_pitch_roll.z,
     );
-    look.forward = rotation * -Vec3::unit_z();
-    look.right = rotation * Vec3::unit_x();
-    look.up = rotation * Vec3::unit_y();
+    look.forward = rotation * -Vec3::Z;
+    look.right = rotation * Vec3::X;
+    look.up = rotation * Vec3::Y;
   }
 }
 
@@ -50,7 +50,7 @@ impl Default for MouseSettings {
   fn default() -> Self {
     Self {
       sensitivity: 0.005,
-      yaw_pitch_roll: Vec3::zero(),
+      yaw_pitch_roll: Vec3::ZERO,
     }
   }
 }
@@ -77,7 +77,7 @@ pub fn input_to_look(
     return;
   }
 
-  let mut delta = Vec2::zero();
+  let mut delta = Vec2::ZERO;
   for motion in mouse_motion.iter() {
     // NOTE: -= to invert
     delta -= motion.delta;

@@ -15,7 +15,7 @@ const UPDATE_VELOCITY: &str = "update_velocity";
 
 pub struct PlayerControllerPlugin;
 impl Plugin for PlayerControllerPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .add_startup_system(spawn::spawn_character.system())
       // .add_system(spawn::update_camera.system())

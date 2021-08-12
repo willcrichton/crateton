@@ -30,7 +30,7 @@ pub fn controller_to_rapier_dynamic_impulse(
   >,
   controller: ResMut<CharacterController>,
 ) {
-  let mut impulse = Vec3::zero();
+  let mut impulse = Vec3::ZERO;
   for event in impulses.iter() {
     impulse += **event;
   }
@@ -63,7 +63,7 @@ pub fn controller_to_fly(
       *body_type = BodyStatus::Static;
       body_activation.sleep();
 
-      let delta = translations.iter().fold(Vec3::zero(), |a, b| a + **b);
+      let delta = translations.iter().fold(Vec3::ZERO, |a, b| a + **b);
       body_position.next_position = body_position.position;
       body_position.next_position.translation.vector += delta.to_na_vector3();
     }

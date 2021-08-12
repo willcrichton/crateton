@@ -46,7 +46,7 @@ struct DebuggerUiLock(Option<UiLock>);
 
 pub struct DebuggerPlugin;
 impl Plugin for DebuggerPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .init_resource::<InspectableRegistry>()
       .init_resource::<DebuggerUiLock>()

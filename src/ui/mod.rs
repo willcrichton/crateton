@@ -57,10 +57,40 @@ impl UiWindowManager {
   }
 }
 
-fn ui_window_system(manager: Res<UiWindowManager>, mut windows: ResMut<Windows>) {
+fn ui_window_system(
+  manager: Res<UiWindowManager>,
+  mut windows: ResMut<Windows>,
+  mouse_input: Res<Input<MouseButton>>,
+  mut has_clicked: Local<bool>,
+) {
   let window = windows.get_primary_mut().unwrap();
   let showing = manager.is_showing();
-  window.set_cursor_lock_mode(!showing);
+
+  #[cfg(target_arch = "wasm32")]
+  {
+    if mouse_input.just_pressed(MouseButton::Left) {
+      *has_clicked = true;
+    }
+
+    if !*has_clicked {
+      return;
+    }
+
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    if (showing) {
+      document.exit_pointer_lock();
+    } else {
+      let canvas = document.get_element_by_id("game").unwrap();
+      canvas.request_pointer_lock();
+    }
+  }
+
+  #[cfg(not(target_arch = "wasm32"))]
+  {
+    window.set_cursor_lock_mode(showing);
+  }
+
   window.set_cursor_visibility(showing);
 }
 
@@ -78,22 +108,35 @@ fn configure_fonts(mut egui_context: ResMut<EguiContext>, mut done: Local<bool>)
   ctx.set_fonts(fonts);
 }
 
+// fn capture_first_click(
+//   mut windows: ResMut<Windows>,
+//   mut done: Local<bool>,
+//   mouse_input: Res<Input<MouseButton>>,
+// ) {
+//   if *done {
+//     return;
+//   }
+
+//   let window = windows.get_primary_mut().unwrap();
+//   if mouse_input.just_pressed(MouseButton::Left) {
+
+//     *done = true;
+//   }
+// }
+
 pub struct UiPlugin;
 impl Plugin for UiPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       // Common UI utilities
       .add_plugin(EguiPlugin)
       .init_resource::<InternedTextures>()
       .init_resource::<UiWindowManager>()
       .add_system(ui_window_system.system())
-      
       .add_system(configure_fonts.system())
-
       // Individual UI plugins
       .add_plugin(debugger::DebuggerPlugin)
       .add_plugin(spawnmenu::SpawnmenuPlugin)
       .add_plugin(terminal::TerminalPlugin);
-      ;
   }
 }

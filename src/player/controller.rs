@@ -45,7 +45,7 @@ impl Default for CharacterController {
       walk_speed: 5.0,
       run_speed: 8.0,
       jump_speed: 6.0,
-      velocity: Vec3::zero(),
+      velocity: Vec3::ZERO,
       jumping: false,
       dt: 1.0 / 60.0,
       sim_to_render: 0.0,
@@ -62,11 +62,11 @@ pub enum Perspective {
 impl Perspective {
   pub fn to_transform(&self) -> Transform {
     let (eye, center) = match self {
-      Perspective::FirstPerson => (Vec3::zero(), -Vec3::unit_z()),
-      Perspective::ThirdPerson => (Vec3::new(0., 4., 8.), Vec3::zero()),
+      Perspective::FirstPerson => (Vec3::ZERO, -Vec3::Z),
+      Perspective::ThirdPerson => (Vec3::new(0., 4., 8.), Vec3::ZERO),
     };
 
-    Transform::from_matrix(Mat4::face_toward(eye, center, Vec3::unit_y()))
+    Transform::from_matrix(Mat4::face_toward(eye, center, Vec3::Y))
   }
 }
 
@@ -139,12 +139,12 @@ pub fn input_to_events(
       (
         (look.forward * xz).normalize(),
         (look.right * xz).normalize(),
-        Vec3::unit_y(),
+        Vec3::Y,
       )
     };
 
     // Calculate the desired velocity based on input
-    let mut desired_velocity = Vec3::zero();
+    let mut desired_velocity = Vec3::ZERO;
     if controller.input_state.forward {
       desired_velocity += forward;
     }

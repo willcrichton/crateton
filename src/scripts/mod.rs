@@ -113,7 +113,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 pub struct ScriptsPlugin;
 impl Plugin for ScriptsPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .add_startup_system(create_interpreter.exclusive_system())
       .add_system(run_scripts.exclusive_system())

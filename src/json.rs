@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use bevy::reflect as bevy_reflect;
 use bevy::{
   asset::{AssetLoader, LoadContext, LoadedAsset},
   ecs::system::EntityCommands,
@@ -93,7 +94,7 @@ fn load_json(
 
 pub struct JsonPlugin;
 impl Plugin for JsonPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .init_resource::<JsonLoader>()
       .add_asset::<JsonData>()

@@ -27,7 +27,7 @@ fn init_map(
   };
   *done = true;
 
-  let lights = vec![LightBundle {
+  let lights = vec![PointLightBundle {
     transform: Transform::from_translation(Vec3::new(4.0, 5.0, 4.0)),
     ..Default::default()
   }];
@@ -88,7 +88,7 @@ fn load_map_assets(mut events: ResMut<Events<LoadModelEvent>>) {
 
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .add_startup_system(load_map_assets.system())
       .add_system(init_map.system());

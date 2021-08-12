@@ -92,7 +92,7 @@ fn listen_for_load_models(
     let entity_commands = commands.spawn_bundle((scene, model_info.clone(), Parent(category.0)));
 
     // if io.exists(&model_info.params_path()) {
-      json_loader.load::<ModelParams>(entity_commands, asset_server.load(model_info.params_path()));
+    json_loader.load::<ModelParams>(entity_commands, asset_server.load(model_info.params_path()));
     // } else {
     //   commands.with(ModelParams::default());
     // }
@@ -142,7 +142,7 @@ fn listen_for_spawn_models(
 
 pub struct ModelsPlugin;
 impl Plugin for ModelsPlugin {
-  fn build(&self, app: &mut AppBuilder) {
+  fn build(&self, app: &mut App) {
     app
       .insert_resource(ModelCategory(Entity::from_bits(0)))
       .add_event::<SpawnModelEvent>()
