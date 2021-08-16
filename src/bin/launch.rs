@@ -1,25 +1,4 @@
-#![allow(warnings)]
-use bevy::prelude::*;
-
-mod json;
-mod map;
-mod math;
-mod models;
-mod physics;
-mod player;
-mod prelude;
-mod scripts;
-mod shaders;
-mod tools;
-mod ui;
-mod utils;
-
-/* TODOS
-- web support [sub todo: figure out mouse capture]
-- tool outline shader
-- python syntax highlighting
-- mesh decomp & thumbnail offline generators
-*/
+use crateton::{*, prelude::*};
 
 fn main() {
   let mut app = App::new();
@@ -48,7 +27,7 @@ fn main() {
     .add_plugin(tools::ToolPlugin)
     .add_plugin(map::MapPlugin)
     .add_plugin(ui::UiPlugin)
-    .add_plugin(json::JsonPlugin)
+    .add_plugin(serde::SerdePlugin)
     .add_plugin(models::ModelsPlugin)
     .add_plugin(scripts::ScriptsPlugin);
 

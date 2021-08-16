@@ -25,6 +25,8 @@ fn init_map(
       return;
     }
   };
+
+  info!("Initializing map");
   *done = true;
 
   let lights = vec![PointLightBundle {

@@ -1,9 +1,14 @@
-use crate::{json::JsonLoader, physics::ColliderParams, prelude::*};
+use crate::{
+  physics::{ColliderParams, SceneDecomposition},
+  prelude::*,
+  serde::{JsonLoader, RmpLoader},
+};
 use bevy_rapier3d::{na::Isometry3, rapier::dynamics::BodyStatus};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 // mod decomposition;
+pub mod mesh_wrapper;
 mod thumbnail;
 
 // pub use decomposition::{MeshDecomposition, SceneDecomposition};
@@ -51,9 +56,9 @@ impl ModelInfo {
     self.dir().join("thumbnail.jpg")
   }
 
-  // pub fn mesh_decomposition_path(&self) -> PathBuf {
-  //   self.dir().join("mesh_decomposition.json")
-  // }
+  pub fn mesh_decomposition_path(&self) -> PathBuf {
+    self.dir().join("mesh_decomposition.rmp")
+  }
 
   pub fn params_path(&self) -> PathBuf {
     self.dir().join("config.json")
@@ -75,6 +80,7 @@ fn listen_for_load_models(
   mut commands: Commands,
   asset_server: Res<AssetServer>,
   mut json_loader: ResMut<JsonLoader>,
+  mut rmp_loader: ResMut<RmpLoader>,
   mut event_reader: EventReader<LoadModelEvent>,
   category: Res<ModelCategory>,
 ) {
@@ -87,12 +93,27 @@ fn listen_for_load_models(
       .to_str()
       .unwrap()
       .to_string();
+
     let scene: Handle<Scene> = asset_server.load(path.as_str());
     let model_info = ModelInfo { name, path };
-    let entity_commands = commands.spawn_bundle((scene, model_info.clone(), Parent(category.0)));
+    let mut entity_commands =
+      commands.spawn_bundle((scene, model_info.clone(), Parent(category.0)));
+    info!(
+      "Loading model: {} ({:?})",
+      model_info.name,
+      entity_commands.id()
+    );
+
+    rmp_loader.load::<SceneDecomposition>(
+      &mut entity_commands,
+      asset_server.load(model_info.mesh_decomposition_path()),
+    );
+    json_loader.load::<ModelParams>(
+      &mut entity_commands,
+      asset_server.load(model_info.params_path()),
+    );
 
     // if io.exists(&model_info.params_path()) {
-    json_loader.load::<ModelParams>(entity_commands, asset_server.load(model_info.params_path()));
     // } else {
     //   commands.with(ModelParams::default());
     // }

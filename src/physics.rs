@@ -1,5 +1,13 @@
-use crate::{models::ModelInstance, prelude::*, utils};
-use bevy::render::mesh::{Indices, VertexAttributeValues};
+use crate::{
+  models::{mesh_wrapper::MeshWrapper, ModelInstance},
+  prelude::*,
+  utils,
+};
+use bevy::{
+  gltf::GltfId,
+  reflect::{self as bevy_reflect, TypeUuid},
+  render::mesh::{Indices, VertexAttributeValues},
+};
 use bevy_rapier3d::{
   na::{Point3, UnitQuaternion, Vector3},
   prelude::*,
@@ -13,80 +21,64 @@ use bevy_rapier3d::{
     },
   },
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-use std::borrow::Cow;
+pub const POSITION_ATTRIBUTE: &'static str = "Vertex_Position";
+pub const NORMAL_ATTRIBUTE: &'static str = "Vertex_Normal";
 
-pub struct MeshWrapper<'a> {
-  mesh: &'a Mesh,
-  normal_attribute: String,
-  position_attribute: String,
-  scale: Vector3<f32>,
-}
 
-impl<'a> MeshWrapper<'a> {
-  pub fn new(
-    mesh: &'a Mesh,
-    position_attribute: impl Into<String>,
-    normal_attribute: impl Into<String>,
-    scale: Vector3<f32>,
-  ) -> MeshWrapper<'a> {
-    MeshWrapper {
-      mesh,
-      normal_attribute: normal_attribute.into(),
-      position_attribute: position_attribute.into(),
-      scale,
+pub type MeshComponent = (Isometry<f32>, Vec<Point<f32>>, Vec<[u32; 3]>);
+
+#[derive(Serialize, Deserialize, TypeUuid)]
+#[uuid = "ae35a361-fb0b-47a1-97f7-c9e68091eec4"]
+pub struct SceneDecomposition(pub HashMap<GltfId, Vec<MeshComponent>>);
+
+
+pub fn build_collider(
+  mut commands: EntityCommands,
+  mesh: &Mesh,
+  scale: &Vector3<f32>,
+  body_status: BodyStatus,
+  decomp: Option<&Vec<MeshComponent>>,
+) {
+  let scale_vertices = |vs: &mut [Point<f32>]| {
+    for v in vs.iter_mut() {
+      *v = Point3::from(v.coords.component_mul(scale));
     }
-  }
+  };
 
-  pub fn build_collider(&self, mut commands: EntityCommands, body_status: BodyStatus) {
-    let vertices = self.vertices();
-    let indices = self.indices();
-    let shape = if body_status == BodyStatus::Dynamic {
-      ColliderShape::convex_decomposition(&vertices, &indices)
-    } else {
-      ColliderShape::trimesh(vertices, indices)
-    };
-
-    let id = commands.id().id() as usize;
-    commands.insert_bundle(ColliderBundle {
-      shape,
-      mass_properties: ColliderMassProps::Density(1.0),
-      ..Default::default()
-    });
-  }
-
-  fn get_attribute(&self, name: impl Into<Cow<'static, str>>) -> Vec<Point<f32>> {
-    let name = name.into();
-    let attr = self
-      .mesh
-      .attribute(name.clone())
-      .expect(&format!("invalid attribute name {}", name));
-    match attr {
-      VertexAttributeValues::Float32x3(v) => v
+  let shape = match (body_status, decomp) {
+    (BodyStatus::Dynamic, Some(decomp)) => {
+      let compound = decomp
         .iter()
-        .map(|p| point![p[0], p[1], p[2]])
-        .collect::<Vec<_>>(),
-      _ => unimplemented!(),
+        .map(|(offset, vertices, _indices)| {
+          let mut vertices = vertices.clone();
+          scale_vertices(&mut vertices);
+          (offset.clone(), ColliderShape::convex_hull(&vertices).unwrap())
+        })
+        .collect::<Vec<_>>();
+      ColliderShape::compound(compound)
     }
-  }
-
-  fn vertices(&self) -> Vec<Point<f32>> {
-    self
-      .get_attribute(self.position_attribute.clone())
-      .into_iter()
-      .map(|point| Point3::from(point.coords.component_mul(&self.scale)))
-      .collect()
-  }
-
-  fn indices(&self) -> Vec<[u32; 3]> {
-    match self.mesh.indices().as_ref().unwrap() {
-      Indices::U32(indices) => indices
-        .chunks(3)
-        .map(|c| [c[0], c[1], c[2]])
-        .collect::<Vec<_>>(),
-      _ => unimplemented!(),
+    _ => {
+      let mesh_wrapper = MeshWrapper::new(mesh, POSITION_ATTRIBUTE, NORMAL_ATTRIBUTE);
+      let mut vertices = mesh_wrapper.vertices();
+      scale_vertices(&mut vertices);
+      let indices = mesh_wrapper.indices();
+      if body_status == BodyStatus::Dynamic {
+        ColliderShape::convex_decomposition(&vertices, &indices)
+      } else {
+        ColliderShape::trimesh(vertices, indices)
+      }
     }
-  }
+  };
+
+  let id = commands.id().id() as usize;
+  commands.insert_bundle(ColliderBundle {
+    shape,
+    mass_properties: ColliderMassProps::Density(1.0),
+    ..Default::default()
+  });
 }
 
 #[derive(Debug)]
@@ -101,6 +93,8 @@ fn attach_collider(
   mut commands: Commands,
   mut query: Query<(Entity, Option<&ModelInstance>, &ColliderParams)>,
   children_query: Query<&Children>,
+  gltf_id_query: Query<&GltfId>,
+  decomp_query: Query<&SceneDecomposition>,
   mesh_query: Query<&Handle<Mesh>>,
   transform_query: Query<&GlobalTransform>,
   mut meshes: ResMut<Assets<Mesh>>,
@@ -111,25 +105,40 @@ fn attach_collider(
     let (global_position, global_scale) = transform_query.get(entity).unwrap().to_na_isometry();
 
     if let Ok(mesh_handle) = mesh_query.get(entity) {
+      info!("Attaching collider directly to entity: {:?}", entity);
       let mesh = meshes.get(mesh_handle).unwrap();
-      MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", global_scale)
-        .build_collider(commands.entity(entity), body_status);
+      build_collider(
+        commands.entity(entity),
+        mesh,
+        &global_scale,
+        body_status,
+        None,
+      );
     } else {
       let children = utils::collect_children(entity, &children_query);
-      println!("SPAWN? {:?}", children.len());
+      let decomp = model_instance.and_then(|model| decomp_query.get(model.0).ok());
 
       // HACK: while scene is spawning, ignore this entity
       // is there a better way to listen for this?
-      if children.len() == 0 {
+      if children.len() == 0 || (body_status == BodyStatus::Dynamic && decomp.is_none()) {
         continue;
       }
+
+      info!("Attaching collider to children of entity: {:?}", entity);
 
       for child in children.iter() {
         if let Ok(mesh_handle) = mesh_query.get(*child) {
           let mesh = meshes.get(mesh_handle).unwrap();
           let (child_position, child_scale) = transform_query.get(*child).unwrap().to_na_isometry();
-          MeshWrapper::new(mesh, "Vertex_Position", "Vertex_Normal", child_scale)
-            .build_collider(commands.entity(*child), body_status);
+          let compound =
+            decomp.map(|decomp| decomp.0.get(gltf_id_query.get(*child).unwrap()).unwrap());
+          build_collider(
+            commands.entity(*child),
+            mesh,
+            &child_scale,
+            body_status,
+            compound,
+          );
 
           let pos_wrt_parent = Isometry::from_parts(
             (child_position.translation.vector - global_position.translation.vector).into(),

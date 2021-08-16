@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - run: mkdir deps && cd deps && git clone https://github.com/willcrichton/bevy
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal

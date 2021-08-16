@@ -88,7 +88,7 @@ fn ui_window_system(
 
   #[cfg(not(target_arch = "wasm32"))]
   {
-    window.set_cursor_lock_mode(showing);
+    window.set_cursor_lock_mode(!showing);
   }
 
   window.set_cursor_visibility(showing);
@@ -107,22 +107,6 @@ fn configure_fonts(mut egui_context: ResMut<EguiContext>, mut done: Local<bool>)
     .insert(TextStyle::Monospace, (FontFamily::Monospace, 14.));
   ctx.set_fonts(fonts);
 }
-
-// fn capture_first_click(
-//   mut windows: ResMut<Windows>,
-//   mut done: Local<bool>,
-//   mouse_input: Res<Input<MouseButton>>,
-// ) {
-//   if *done {
-//     return;
-//   }
-
-//   let window = windows.get_primary_mut().unwrap();
-//   if mouse_input.just_pressed(MouseButton::Left) {
-
-//     *done = true;
-//   }
-// }
 
 pub struct UiPlugin;
 impl Plugin for UiPlugin {

@@ -1,45 +1,50 @@
 [package]
 authors = ["Will Crichton <wcrichto@cs.stanford.edu>"]
-default-run = "crateton"
 edition = "2018"
 name = "crateton"
 version = "0.1.0"
 resolver = "2"
+default-run = "launch"
 
 
 [dependencies]
 # Ui
 bevy-inspector-egui = {version = "0.6"} #features = ["rapier"]} # TODO: rapier feature is broken
 bevy_egui = "0.6"
-syntect = {version = "4.6", default-features = false, features = ["default-fancy"]}
+syntect = {version = "4", default-features = false, features = ["default-fancy"]}
 
 # Scripts
 rustpython-common = {git = "https://github.com/RustPython/RustPython"}
 rustpython-vm = {git = "https://github.com/RustPython/RustPython", default-features = false, features = ["freeze-stdlib", "compile-parse"]}
 
 # Misc
-anyhow = "1.0"
+anyhow = "1"
 itertools = "0.10"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
+rmp-serde = "0.15"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bevy = {version = "0.5", features = ["jpeg", "dynamic"]}
-bevy_rapier3d = {version = "0.10", features = ["simd-stable"]}
+bevy_rapier3d = {version = "0.10", features = ["simd-stable", "serde-serialize"]}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 bevy = {version = "0.5", default-features = false, features = ["render", "bevy_gltf", "png", "bevy_winit", "jpeg"]}
-bevy_rapier3d = {version = "0.10", features = ["wasm-bindgen"]}
+bevy_rapier3d = {version = "0.10", features = ["wasm-bindgen", "serde-serialize"]}
 web-sys = "0.3"
 bevy_webgl2 = "0.5"
 
 
 [patch.crates-io]
-bevy = {git = "https://github.com/bevyengine/bevy", branch = "main"}
+bevy = { path = "deps/bevy" }
+# bevy = {git = "https://github.com/bevyengine/bevy", branch = "main"}
 bevy-inspector-egui = {git = "https://github.com/jakobhellermann/bevy-inspector-egui", branch = "bevy-main" }
 bevy_egui = {git = "https://github.com/jakobhellermann/bevy_egui", branch = "bevy-main" }
 bevy_webgl2 = {git = "https://github.com/billyb2/bevy_webgl2"}
 bevy_rapier3d = {git = "https://github.com/deontologician/bevy_rapier", branch = "bevy-main-fixes" }
+
+[patch.'https://github.com/bevyengine/bevy']
+bevy = { path = "deps/bevy" }
 
 
 ###### Performance knobs
