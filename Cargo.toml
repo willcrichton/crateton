@@ -17,12 +17,15 @@ syntect = {version = "4", default-features = false, features = ["default-fancy"]
 rustpython-common = {git = "https://github.com/RustPython/RustPython"}
 rustpython-vm = {git = "https://github.com/RustPython/RustPython", default-features = false, features = ["freeze-stdlib", "compile-parse"]}
 
-# Misc
-anyhow = "1"
-itertools = "0.10"
+# Serialization
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 rmp-serde = "0.15"
+
+# Misc
+anyhow = "1"
+itertools = "0.10"
+image = "0.23"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bevy = {version = "0.5", features = ["jpeg", "dynamic"]}
