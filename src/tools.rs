@@ -9,7 +9,7 @@ use bevy::{
   input::mouse::{MouseMotion, MouseWheel},
   render::{
     pipeline::{Face, PipelineDescriptor, PrimitiveState},
-    shader::ShaderStages,
+    shader::{ShaderStage, ShaderStages},
   },
 };
 use bevy_rapier3d::{
@@ -204,15 +204,23 @@ fn init_outline_shader(
   mut pipelines: ResMut<Assets<PipelineDescriptor>>,
   mut outline_shader: ResMut<OutlineShader>,
   asset_server: Res<AssetServer>,
+  mut shaders: ResMut<Assets<Shader>>,
 ) {
   outline_shader.0 = pipelines.add(PipelineDescriptor {
+    name: Some("outline_shader".into()),
     primitive: PrimitiveState {
       cull_mode: Some(Face::Front),
       ..Default::default()
     },
     ..PipelineDescriptor::default_config(ShaderStages {
-      vertex: asset_server.load("shaders/silhouette.vert"),
-      fragment: Some(asset_server.load("shaders/silhouette.frag")),
+      vertex: shaders.add(Shader::from_glsl(
+        ShaderStage::Vertex,
+        include_str!("../assets/shaders/silhouette.vert"),
+      )),
+      fragment: Some(shaders.add(Shader::from_glsl(
+        ShaderStage::Fragment,
+        include_str!("../assets/shaders/silhouette.frag"),
+      ))),
     })
   });
 }

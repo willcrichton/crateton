@@ -1,6 +1,9 @@
 use crateton::{prelude::*, *};
 
 fn main() {
+  // Dependencies like wgpu use log, so this is necessary to see their errors
+  env_logger::init();
+
   let mut app = App::new();
 
   #[cfg(target_arch = "wasm32")]

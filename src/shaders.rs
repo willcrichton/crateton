@@ -1,6 +1,7 @@
 use bevy::{
   prelude::*,
   render::pipeline::{PipelineDescriptor, PipelineSpecialization, RenderPipeline},
+  utils::HashSet,
 };
 
 use crate::physics::ColliderChildren;
@@ -25,21 +26,10 @@ fn handle_shader_events(
 ) {
   for AttachShaderEvent { entity, pipeline } in attach_events.iter() {
     let mut attach = |entity: Entity| {
-      let specialization = {
-        let mesh_handle = mesh_query.get(entity).unwrap();
-        let mesh = meshes.get(mesh_handle).unwrap();
-        PipelineSpecialization {
-          vertex_buffer_layout: mesh.get_vertex_buffer_layout(),
-          ..Default::default()
-        }
-      };
-
-      // Add the shader to the set of render pipelines
       let mut render_pipelines = render_pipelines_query.get_mut(entity).unwrap();
-      render_pipelines.pipelines.push(RenderPipeline::specialized(
-        pipeline.clone(),
-        specialization,
-      ));
+      let specialization = render_pipelines.pipelines[0].specialization.clone();
+      let render_pipeline = RenderPipeline::specialized(pipeline.clone(), specialization);
+      render_pipelines.pipelines.push(render_pipeline);
     };
 
     if mesh_query.get(*entity).is_ok() {
