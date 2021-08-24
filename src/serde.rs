@@ -6,11 +6,10 @@ use bevy::{
   reflect::TypeUuid,
   utils::BoxedFuture,
 };
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-
 
 pub trait SerdeFormat: Send + Sync + Default + 'static {
   fn deserialize<T: DeserializeOwned>(bytes: &[u8]) -> anyhow::Result<T>;
@@ -21,7 +20,6 @@ pub trait SerdeFormat: Send + Sync + Default + 'static {
 pub struct JsonFormat;
 impl SerdeFormat for JsonFormat {
   fn deserialize<T: DeserializeOwned>(bytes: &[u8]) -> anyhow::Result<T> {
-    println!("A");
     Ok(serde_json::from_slice(bytes)?)
   }
 
@@ -70,7 +68,7 @@ type Deserializer = Box<dyn Fn(&mut Commands, Entity, &RawData) -> () + Send + S
 struct SingleDataLoader<F> {
   handle: Handle<RawData>,
   convert: Deserializer,
-  _format: PhantomData<F>
+  _format: PhantomData<F>,
 }
 
 impl<F: SerdeFormat> SingleDataLoader<F> {
@@ -84,7 +82,11 @@ impl<F: SerdeFormat> SingleDataLoader<F> {
           .remove::<LoadingSerializedDataTag<T>>();
       },
     ) as Deserializer;
-    SingleDataLoader { handle, convert, _format: PhantomData }
+    SingleDataLoader {
+      handle,
+      convert,
+      _format: PhantomData,
+    }
   }
 }
 #[derive(Default)]
@@ -127,9 +129,9 @@ fn load_data<F: SerdeFormat>(
   }
 }
 
-
 fn register<F: SerdeFormat>(app: &mut App) {
-  app.init_resource::<SerdeLoader<F>>()
+  app
+    .init_resource::<SerdeLoader<F>>()
     .init_asset_loader::<SerdeAssetLoader<F>>()
     .add_system(load_data::<F>.system());
 }

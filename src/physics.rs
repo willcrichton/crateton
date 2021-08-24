@@ -27,13 +27,11 @@ use std::collections::HashMap;
 pub const POSITION_ATTRIBUTE: &'static str = "Vertex_Position";
 pub const NORMAL_ATTRIBUTE: &'static str = "Vertex_Normal";
 
-
 pub type MeshComponent = (Isometry<f32>, Vec<Point<f32>>, Vec<[u32; 3]>);
 
 #[derive(Serialize, Deserialize, TypeUuid)]
 #[uuid = "ae35a361-fb0b-47a1-97f7-c9e68091eec4"]
 pub struct SceneDecomposition(pub HashMap<GltfId, Vec<MeshComponent>>);
-
 
 pub fn build_collider(
   mut commands: EntityCommands,
@@ -55,7 +53,10 @@ pub fn build_collider(
         .map(|(offset, vertices, _indices)| {
           let mut vertices = vertices.clone();
           scale_vertices(&mut vertices);
-          (offset.clone(), ColliderShape::convex_hull(&vertices).unwrap())
+          (
+            offset.clone(),
+            ColliderShape::convex_hull(&vertices).unwrap(),
+          )
         })
         .collect::<Vec<_>>();
       ColliderShape::compound(compound)

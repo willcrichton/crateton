@@ -1,4 +1,4 @@
-use crateton::{*, prelude::*};
+use crateton::{prelude::*, *};
 
 fn main() {
   let mut app = App::new();

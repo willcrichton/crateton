@@ -41,10 +41,11 @@ fn after_spawn(
   meshes: Res<Assets<Mesh>>,
   mut graph: ResMut<RenderGraph>,
   msaa: Res<Msaa>,
-  mut active_cameras: ResMut<ActiveCameras>,  
+  mut active_cameras: ResMut<ActiveCameras>,
   textures: ResMut<Assets<Texture>>,
   render_texture_handle: ResMut<render_to_texture::RenderTextureHandle>,
   mut done: Local<bool>,
+  mut exit_events: EventWriter<AppExit>,
 ) {
   if query.is_empty() || *done {
     return;
@@ -77,8 +78,10 @@ fn after_spawn(
     let mut f = File::create(out_path)?;
     f.write_all(&bytes)?;
 
-    let size = Extent3d::new(512, 512, 1);
-    render_to_texture::add_render_to_texture_graph(&mut commands, &mut graph, size, &mut active_cameras, textures, render_texture_handle);
+    // let size = Extent3d::new(512, 512, 1);
+    // render_to_texture::add_render_to_texture_graph(&mut commands, &mut graph, size, &mut active_cameras, textures, render_texture_handle);
+
+    exit_events.send(AppExit);
 
     Ok(())
   };
